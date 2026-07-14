@@ -31,6 +31,8 @@ export interface Attestation {
 export interface Passport {
   publicId: string;
   verificationId: string;
+  inputType: InputType;
+  originalInput?: string;
   truthScore: number;
   verdict: string;
   summary: string;

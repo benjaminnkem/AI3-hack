@@ -1,49 +1,43 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import { verify } from '@/lib/api';
 import { VerificationForm, VerificationFormValues } from '@/components/VerificationForm';
 import { LoadingScreen } from '@/components/LoadingScreen';
-import { PassportView } from '@/components/PassportView';
 
 export default function VerifyPage() {
-  const mutation = useMutation({ mutationFn: verify });
+  const router = useRouter();
+
+  const mutation = useMutation({
+    mutationFn: verify,
+    onSuccess: (data) => {
+      router.push(`/passport/${data.publicId}`);
+    },
+  });
 
   const handleSubmit = (values: VerificationFormValues) => {
     mutation.mutate({ inputType: values.inputType, input: values.input });
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-2xl mx-auto">
       <div>
         <h1 className="text-3xl font-bold">Verify a claim</h1>
         <p className="mt-2 text-muted">
-          Paste text, a URL, or a tweet. Mesh returns a full Evidence Passport.
+          Submit text, a URL, or an image. Mesh will generate a verifiable Evidence Passport.
         </p>
       </div>
 
-      <VerificationForm onSubmit={handleSubmit} loading={mutation.isPending} />
-
-      {mutation.isPending && <LoadingScreen />}
-
-      {mutation.isError && (
-        <div className="card border-danger/40 p-4 text-sm text-danger">
-          Verification failed. Check that the API and Gonka credentials are configured.
-        </div>
+      {mutation.isPending ? (
+        <LoadingScreen />
+      ) : (
+        <VerificationForm onSubmit={handleSubmit} loading={mutation.isPending} />
       )}
 
-      {mutation.data && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Evidence Passport</h2>
-            <a
-              href={`/passport/${mutation.data.publicId}`}
-              className="text-sm text-accent hover:underline"
-            >
-              Public link →
-            </a>
-          </div>
-          <PassportView passport={mutation.data} />
+      {mutation.isError && (
+        <div className="card border-danger/40 p-4 text-sm text-danger bg-danger/5">
+          Verification failed. Check that the API and Gonka credentials are configured.
         </div>
       )}
     </div>
