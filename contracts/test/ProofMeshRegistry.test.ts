@@ -1,14 +1,14 @@
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { ProofMeshRegistry } from '../typechain-types';
+import { MeshRegistry } from '../typechain-types';
 
-describe('ProofMeshRegistry', () => {
-  let registry: ProofMeshRegistry;
+describe('MeshRegistry', () => {
+  let registry: MeshRegistry;
   const hash = ethers.keccak256(ethers.toUtf8Bytes('passport-1'));
 
   beforeEach(async () => {
-    const Factory = await ethers.getContractFactory('ProofMeshRegistry');
-    registry = (await Factory.deploy()) as unknown as ProofMeshRegistry;
+    const Factory = await ethers.getContractFactory('MeshRegistry');
+    registry = (await Factory.deploy()) as unknown as MeshRegistry;
     await registry.waitForDeployment();
   });
 
@@ -42,9 +42,6 @@ describe('ProofMeshRegistry', () => {
   });
 
   it('reverts reading an unknown passport', async () => {
-    await expect(registry.getAttestation(hash)).to.be.revertedWithCustomError(
-      registry,
-      'NotFound',
-    );
+    await expect(registry.getAttestation(hash)).to.be.revertedWithCustomError(registry, 'NotFound');
   });
 });

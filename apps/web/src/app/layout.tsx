@@ -5,8 +5,9 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 
 export const metadata: Metadata = {
-  title: 'ProofMesh — Verifiable Evidence Passports',
-  description: 'Decentralized AI verification. Every digital claim deserves a verifiable Evidence Passport.',
+  title: 'Mesh — Verifiable Evidence Passports',
+  description:
+    'Decentralized AI verification. Every digital claim deserves a verifiable Evidence Passport.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

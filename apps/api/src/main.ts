@@ -14,7 +14,7 @@ async function bootstrap(): Promise<void> {
   app.useGlobalFilters(new GlobalExceptionFilter());
 
   const config = new DocumentBuilder()
-    .setTitle('ProofMesh API')
+    .setTitle('Mesh API')
     .setDescription('Decentralized AI verification protocol — Evidence Passports.')
     .setVersion('1.0.0')
     .build();
@@ -23,6 +23,6 @@ async function bootstrap(): Promise<void> {
   const port = Number(process.env.PORT ?? 4000);
   await app.listen(port);
   // eslint-disable-next-line no-console
-  console.log(`ProofMesh API on :${port} — docs at /docs`);
+  console.log(`Mesh API on :${port} — docs at /docs`);
 }
 void bootstrap();

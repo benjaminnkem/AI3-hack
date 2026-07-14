@@ -9,7 +9,7 @@ export function Navbar() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <Link href="/" className="flex items-center gap-2 font-semibold">
           <ShieldCheck className="text-accent" size={22} />
-          ProofMesh
+          Mesh
         </Link>
         <div className="flex items-center gap-6 text-sm text-muted">
           <Link href="/verify" className="transition hover:text-white">

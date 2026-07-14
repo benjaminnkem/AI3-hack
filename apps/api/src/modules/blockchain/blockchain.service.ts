@@ -9,7 +9,7 @@ export interface AttestationReceipt {
 }
 
 /**
- * ABI for the ProofMesh attestation registry. Kept minimal — only what the
+ * ABI for the Mesh attestation registry. Kept minimal — only what the
  * backend needs to write and read attestations.
  */
 const REGISTRY_ABI = [
@@ -63,12 +63,7 @@ export class BlockchainService {
     // bytes32 must be exactly 32 bytes — getBytes validates the 0x-prefixed hash.
     getBytes(passportHash);
 
-    const tx = await this.contract.attest(
-      passportHash,
-      Math.round(truthScore),
-      version,
-      requestId,
-    );
+    const tx = await this.contract.attest(passportHash, Math.round(truthScore), version, requestId);
     const receipt = await tx.wait();
     this.logger.log(`Attested ${passportHash} in tx ${receipt.hash}`);
 

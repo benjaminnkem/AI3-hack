@@ -69,7 +69,7 @@ export class ConsensusService {
   ): string {
     const models = verdicts.map((v) => v.model).join(', ');
     const agreePct = Math.round(agreement * 100);
-    const base = `Across ${verdicts.length} model(s) (${models}), ProofMesh derived a truth score of ${score}/100 with ${agreePct}% inter-model agreement.`;
+    const base = `Across ${verdicts.length} model(s) (${models}), Mesh derived a truth score of ${score}/100 with ${agreePct}% inter-model agreement.`;
     return disagreement
       ? `${base} Models diverged significantly on this claim set — treat the verdict as contested and review each model's reasoning below.`
       : `${base} Models were broadly aligned on this assessment.`;

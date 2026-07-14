@@ -1,5 +1,5 @@
 {
-  "name": "@proofmesh/contracts",
+  "name": "@mesh/contracts",
   "version": "1.0.0",
   "private": true,
   "scripts": {

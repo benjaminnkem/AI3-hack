@@ -18,7 +18,7 @@ export default function VerifyPage() {
       <div>
         <h1 className="text-3xl font-bold">Verify a claim</h1>
         <p className="mt-2 text-muted">
-          Paste text, a URL, or a tweet. ProofMesh returns a full Evidence Passport.
+          Paste text, a URL, or a tweet. Mesh returns a full Evidence Passport.
         </p>
       </div>
 

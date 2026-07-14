@@ -1,8 +1,8 @@
 {
-  "name": "proofmesh",
+  "name": "mesh",
   "version": "1.0.0",
   "private": true,
-  "description": "ProofMesh — Every digital claim deserves a verifiable Evidence Passport.",
+  "description": "Mesh — Every digital claim deserves a verifiable Evidence Passport.",
   "packageManager": "pnpm@9.1.0",
   "scripts": {
     "build": "turbo run build",

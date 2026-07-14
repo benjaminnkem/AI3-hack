@@ -2,9 +2,21 @@ import Link from 'next/link';
 import { ShieldCheck, Network, FileCheck2, Boxes } from 'lucide-react';
 
 const FEATURES = [
-  { icon: Network, title: 'Multi-model consensus', body: 'Kimi and MiniMax score every claim independently via the Gonka Router — disagreement is surfaced, not hidden.' },
-  { icon: FileCheck2, title: 'Evidence Passport', body: 'A structured, shareable record of claims, reasoning, model verdicts, and Gonka request IDs.' },
-  { icon: Boxes, title: 'On-chain attestation', body: 'Each passport is hashed and anchored on-chain, making every verdict tamper-evident and auditable.' },
+  {
+    icon: Network,
+    title: 'Multi-model consensus',
+    body: 'Kimi and MiniMax score every claim independently via the Gonka Router — disagreement is surfaced, not hidden.',
+  },
+  {
+    icon: FileCheck2,
+    title: 'Evidence Passport',
+    body: 'A structured, shareable record of claims, reasoning, model verdicts, and Gonka request IDs.',
+  },
+  {
+    icon: Boxes,
+    title: 'On-chain attestation',
+    body: 'Each passport is hashed and anchored on-chain, making every verdict tamper-evident and auditable.',
+  },
 ];
 
 export default function Home() {
@@ -19,14 +31,20 @@ export default function Home() {
           <span className="text-accent">verifiable Evidence Passport</span>.
         </h1>
         <p className="mx-auto mt-6 max-w-xl text-lg text-muted">
-          ProofMesh extracts claims, cross-checks them across independent AI models, and anchors a
+          Mesh extracts claims, cross-checks them across independent AI models, and anchors a
           tamper-evident verdict on-chain.
         </p>
         <div className="mt-8 flex justify-center gap-4">
-          <Link href="/verify" className="rounded-xl bg-accent px-6 py-3 font-semibold text-background shadow-glow transition hover:opacity-90">
+          <Link
+            href="/verify"
+            className="rounded-xl bg-accent px-6 py-3 font-semibold text-background shadow-glow transition hover:opacity-90"
+          >
             Verify a claim
           </Link>
-          <Link href="/about" className="rounded-xl border border-border px-6 py-3 font-medium transition hover:border-accent">
+          <Link
+            href="/about"
+            className="rounded-xl border border-border px-6 py-3 font-medium transition hover:border-accent"
+          >
             How it works
           </Link>
         </div>

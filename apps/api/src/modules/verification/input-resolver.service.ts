@@ -37,7 +37,7 @@ export class InputResolverService {
     try {
       const { data } = await axios.get<string>(url, {
         timeout: 15000,
-        headers: { 'User-Agent': 'ProofMeshBot/1.0' },
+        headers: { 'User-Agent': 'MeshBot/1.0' },
         responseType: 'text',
       });
       // Strip tags/scripts to leave readable text for claim extraction.
@@ -48,7 +48,10 @@ export class InputResolverService {
         .replace(/\s+/g, ' ')
         .trim();
       if (!text) {
-        throw new HttpException('Fetched URL contained no readable text.', HttpStatus.UNPROCESSABLE_ENTITY);
+        throw new HttpException(
+          'Fetched URL contained no readable text.',
+          HttpStatus.UNPROCESSABLE_ENTITY,
+        );
       }
       return text.slice(0, 12000);
     } catch (err) {

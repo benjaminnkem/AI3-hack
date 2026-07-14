@@ -1,12 +1,12 @@
 import { ethers } from 'hardhat';
 
 async function main(): Promise<void> {
-  const Registry = await ethers.getContractFactory('ProofMeshRegistry');
+  const Registry = await ethers.getContractFactory('MeshRegistry');
   const registry = await Registry.deploy();
   await registry.waitForDeployment();
   const address = await registry.getAddress();
   // eslint-disable-next-line no-console
-  console.log(`ProofMeshRegistry deployed to: ${address}`);
+  console.log(`MeshRegistry deployed to: ${address}`);
 }
 
 main().catch((error) => {

@@ -2,13 +2,13 @@
 pragma solidity ^0.8.24;
 
 /**
- * @title ProofMeshRegistry
- * @notice Anchors ProofMesh Evidence Passports on-chain. Stores ONLY the
+ * @title MeshRegistry
+ * @notice Anchors Mesh Evidence Passports on-chain. Stores ONLY the
  *         minimal, non-sensitive fingerprint of a verification: the passport
  *         hash, its truth score, the verification version, a timestamp, and
  *         the Gonka request id. No evidence, no claims, no private data.
  */
-contract ProofMeshRegistry {
+contract MeshRegistry {
     struct Attestation {
         uint16 truthScore; // 0-100
         uint16 verificationVersion; // e.g. 100 == v1.0.0
