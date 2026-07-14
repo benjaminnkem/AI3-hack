@@ -1,0 +1,10 @@
+node_modules
+dist
+.next
+.turbo
+coverage
+artifacts
+cache
+typechain-types
+.env
+*.log
