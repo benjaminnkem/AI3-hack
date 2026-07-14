@@ -8,7 +8,6 @@ interface Props {
   size?: number;
 }
 
-/** Animated circular gauge — the visual centrepiece of a passport. */
 export function TruthScoreGauge({ score, size = 200 }: Props) {
   const { color, label } = scoreMeta(score);
   const stroke = 14;

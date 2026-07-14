@@ -15,8 +15,8 @@ export function Navbar() {
           <Link href="/verify" className="transition hover:text-white">
             Verify
           </Link>
-          <Link href="/history" className="transition hover:text-white">
-            History
+          <Link href="/explore" className="transition hover:text-white">
+            Explore
           </Link>
           <Link href="/about" className="transition hover:text-white">
             About

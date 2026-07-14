@@ -10,10 +10,6 @@ interface Props {
   models: PassportModelResponse[];
 }
 
-/**
- * The headline feature: shows each model's independent verdict side by side
- * and surfaces disagreement instead of hiding it behind one opaque number.
- */
 export function ConsensusCard({ consensus, models }: Props) {
   return (
     <div className="card p-6">

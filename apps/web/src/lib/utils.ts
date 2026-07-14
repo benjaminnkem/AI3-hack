@@ -1,11 +1,10 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-export function cn(...inputs: ClassValue[]): string {
+export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-/** Map a 0-100 score to a semantic colour + label. */
 export function scoreMeta(score: number): { color: string; label: string } {
   if (score >= 85) return { color: '#22e59a', label: 'True' };
   if (score >= 65) return { color: '#7fe37f', label: 'Likely True' };
