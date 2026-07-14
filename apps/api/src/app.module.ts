@@ -1,23 +1,37 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { validateEnvironment } from './config/env';
 import { entities } from './entities';
+import { HealthModule } from './modules/health/health.module';
+import { PassportModule } from './modules/passport/passport.module';
 import { VerificationModule } from './modules/verification/verification.module';
-
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnvironment }),
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => [
+        { ttl: config.get('RATE_LIMIT_TTL_MS', 60000), limit: config.get('RATE_LIMIT_MAX', 20) },
+      ],
+    }),
     TypeOrmModule.forRootAsync({
-      useFactory: () => ({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
         type: 'postgres',
-        url: process.env.DATABASE_URL,
+        url: config.getOrThrow('DATABASE_URL'),
         entities,
-        // synchronize is convenient for the hackathon; use migrations in prod.
-        synchronize: process.env.NODE_ENV !== 'production',
-        autoLoadEntities: true,
+        synchronize: config.get('NODE_ENV') === 'test',
+        migrationsRun: false,
+        logging: false,
       }),
     }),
+    HealthModule,
     VerificationModule,
+    PassportModule,
   ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

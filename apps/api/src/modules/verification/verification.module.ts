@@ -1,27 +1,35 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Attestation, Passport, User, Verification } from '../../entities';
-import { GonkaModule } from '../gonka/gonka.module';
-import { ConsensusModule } from '../consensus/consensus.module';
-import { PassportModule } from '../passport/passport.module';
+import {
+  Attestation,
+  Claim,
+  Evidence,
+  ModelResponse,
+  Passport,
+  Verification,
+} from '../../entities';
 import { BlockchainModule } from '../blockchain/blockchain.module';
 import { ClaimExtractionModule } from '../claim-extraction/claim-extraction.module';
-import { InputResolverService } from './input-resolver.service';
-import { VerificationModelService } from './verification-model.service';
-import { VerificationService } from './verification.service';
+import { ConsensusModule } from '../consensus/consensus.module';
+import { EvidenceModule } from '../evidence/evidence.module';
+import { IngestionModule } from '../ingestion/ingestion.module';
+import { IntegrityModule } from '../integrity/integrity.module';
+import { InvestigationModule } from '../investigation/investigation.module';
 import { VerificationController } from './verification.controller';
-
+import { VerificationService } from './verification.service';
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Verification, User, Passport, Attestation]),
-    GonkaModule,
-    ConsensusModule,
-    PassportModule,
+    TypeOrmModule.forFeature([Verification, Claim, Evidence, ModelResponse, Passport, Attestation]),
     BlockchainModule,
     ClaimExtractionModule,
+    ConsensusModule,
+    EvidenceModule,
+    IngestionModule,
+    IntegrityModule,
+    InvestigationModule,
   ],
   controllers: [VerificationController],
-  providers: [InputResolverService, VerificationModelService, VerificationService],
+  providers: [VerificationService],
   exports: [VerificationService],
 })
 export class VerificationModule {}

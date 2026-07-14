@@ -1,29 +1,35 @@
-export interface ModelVerdict {
-  model: string;
-  /** 0-100 truthfulness score the model assigned to the claim set. */
-  score: number;
-  reasoning: string;
-  requestId: string | null;
+import { EvidenceDirection, Verdict } from '../../entities';
+export interface ScoredEvidence {
+  domain: string;
+  relevance: number;
+  direction: EvidenceDirection;
+  kimiQuality: number;
+  minimaxQuality: number;
 }
-
-export enum Verdict {
-  TRUE = 'true',
-  LIKELY_TRUE = 'likely_true',
-  MIXED = 'mixed',
-  LIKELY_FALSE = 'likely_false',
-  FALSE = 'false',
-  UNVERIFIABLE = 'unverifiable',
+export interface Challenge {
+  severity: number;
+  resolved: boolean;
 }
-
-export interface ConsensusResult {
-  /** Final aggregate 0-100 truth score. */
+export interface ClaimScoreInput {
+  importance: number;
+  kimiProbability: number;
+  minimaxProbability: number;
+  kimiConfidence: number;
+  minimaxConfidence: number;
+  evidence: ScoredEvidence[];
+  challenges: Challenge[];
+}
+export interface ClaimScore {
   truthScore: number;
+  confidenceScore: number;
   verdict: Verdict;
-  /** 0-1 measure of how much the models agreed. */
-  agreement: number;
-  /** 0-1 aggregate confidence, penalised when models disagree. */
-  confidence: number;
-  /** True when model scores diverge beyond the dispersion threshold. */
-  disagreement: boolean;
-  summary: string;
+  evidenceScore: number;
+  modelMean: number;
+  disagreement: number;
+  adversarialPenalty: number;
+}
+export interface OverallScore {
+  truthScore: number;
+  confidenceScore: number;
+  verdict: Verdict;
 }

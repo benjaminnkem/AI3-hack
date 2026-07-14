@@ -9,7 +9,7 @@ The product source of truth is `docs/MESH_PRD.md`. Read it before implementation
 - All AI inference must go through Gonka Router.
 - Confirm Gonka endpoint, model IDs, and request/response behavior from `https://gonkarouter.io/docs` and `https://gonkarouter.io/models`.
 - Tavily is the live evidence retrieval layer only.
-- Base Sepolia chain ID 84532 is the attestation network.
+- Ethereum Sepolia chain ID 11155111 is the attestation network.
 - No secrets in source control or browser-exposed environment variables.
 - No fake production responses, silent requirement reduction, or unrelated features.
 - Prefer simple, testable architecture over extra infrastructure.

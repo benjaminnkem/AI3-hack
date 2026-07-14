@@ -42,7 +42,7 @@ Do not delete or replace working repository configuration. Do not change package
 - Store the Gonka response body `id` as the primary audit ID. Also store a header request ID if the SDK exposes one, but do not require it.
 - Use Tavily via `@tavily/core` for live search and URL extraction. Tavily is retrieval, not AI inference.
 - Use PostgreSQL and real migrations.
-- Use Base Sepolia, chain ID `84532`, for attestations.
+- Use Ethereum Sepolia, chain ID `11155111`, for attestations.
 - Use a storage adapter: local filesystem in development/test and Cloudinary when configured in deployment.
 
 ## Implementation behavior
@@ -63,7 +63,7 @@ Implement the entire synchronous verification pipeline described in the PRD:
 12. Build the canonical Evidence Passport.
 13. Generate stable Keccak-256 hashes and Merkle roots.
 14. Persist all normalized entities and stage status.
-15. Attest the compact passport data through the Base Sepolia registry.
+15. Attest the compact passport data through the Ethereum Sepolia registry.
 16. Return the complete public Evidence Passport.
 17. Implement independent integrity recomputation and contract readback.
 18. Support failed-attestation retry, recent-result reuse, and force-refresh versioning.
@@ -212,7 +212,7 @@ Create:
 
 - comprehensive unit tests
 - local deployment script/module
-- Base Sepolia deployment script/module
+- Ethereum Sepolia deployment script/module
 - operator setup script
 - contract verification command/config when supported
 - ABI export into a stable backend location
@@ -296,8 +296,8 @@ Create backend/contract documentation that includes:
 - Gonka smoke tests for both model IDs
 - Tavily smoke test
 - local contract deployment
-- Base Sepolia wallet/faucet/RPC setup
-- Base Sepolia deployment and optional source verification
+- Ethereum Sepolia wallet/faucet/RPC setup
+- Ethereum Sepolia deployment and optional source verification
 - adding the deployed contract address to backend env
 - text, URL, and image curl examples
 - integrity verification example
@@ -328,7 +328,7 @@ After implementation, give me a structured completion report containing:
 7. Every environment variable, where to obtain it, and which `.env` file receives it.
 8. Exact commands to install, migrate, run, test, deploy, and smoke-test.
 9. Tests and build commands actually run, with pass/fail results.
-10. External actions I still need to perform, such as creating API keys, funding a dedicated Base Sepolia wallet, deploying the contract, or setting production URLs.
+10. External actions I still need to perform, such as creating API keys, funding a dedicated Ethereum Sepolia wallet, deploying the contract, or setting production URLs.
 11. Known limitations that remain, without hiding them.
 
 Begin by inspecting the repository and reading the PRD, then implement the entire backend and contract task now.

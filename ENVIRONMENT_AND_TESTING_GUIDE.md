@@ -1,20 +1,27 @@
-# Mesh Environment Setup and End-to-End Testing Guide
+# Mesh environment and testing guide
 
-This guide describes the target developer experience that the coding agents should implement and document. Adapt command names to the existing workspace scripts rather than replacing a working setup.
+This is the beginner-friendly setup guide for the current repository. The project uses Ethereum Sepolia for contract attestations. Ethereum’s own documentation describes Sepolia as the recommended public testnet for application development and lists supported faucets: <https://ethereum.org/developers/docs/networks/>.
 
----
+## 1. What you are setting up
 
-## 1. Prerequisites
+Mesh has two services that need environment files:
 
-Install:
+1. `apps/api/.env` controls the backend, PostgreSQL, Gonka, Tavily, file storage, and blockchain read/write access.
+2. `apps/contracts/.env` controls contract compilation, deployment, operator setup, and optional Etherscan verification.
 
-- Node.js `22.13.0` or newer. This satisfies current Hardhat 3 requirements and works well across the monorepo.
-- pnpm through Corepack, unless the existing repository lockfile uses another package manager.
-- Docker Desktop or another Docker Compose-compatible runtime.
-- Git.
-- A browser supported by Playwright.
+The frontend is not part of this backend/contract task. Do not put backend secrets in any `NEXT_PUBLIC_*` variable.
 
-Check:
+There are three different blockchain values to understand:
+
+- Wallet address: public identifier such as `0x123...`. It is safe to use in configuration.
+- Private key: secret that signs transactions. Never commit it or send it to anyone.
+- Contract address: public address returned after deploying `MeshAttestationRegistry`.
+
+For the simplest demo, use one brand-new Ethereum Sepolia-only wallet as deployer, owner, and attestor. Do not use a wallet containing real ETH.
+
+## 2. Install prerequisites
+
+Install Node.js 20 or newer, pnpm 9, Git, PostgreSQL/Docker, and a wallet such as MetaMask or Coinbase Wallet.
 
 ```bash
 node --version
@@ -24,80 +31,112 @@ docker --version
 docker compose version
 ```
 
-Use the existing lockfile. Do not delete it or switch package managers.
-
----
-
-## 2. Accounts and Credentials
-
-### Gonka Router
-
-1. Open the Gonka Router dashboard from `https://gonkarouter.io/`.
-2. Sign in and create an API key.
-3. Put it only in `apps/backend/.env` as `GONKA_API_KEY`.
-4. Never put it in `apps/web/.env` or any `NEXT_PUBLIC_` variable.
-
-The application uses:
-
-- `moonshotai/Kimi-K2.6`
-- `MiniMaxAI/MiniMax-M2.7`
-
-### Tavily
-
-1. Create a Tavily account/API key.
-2. Put it in `apps/backend/.env` as `TAVILY_API_KEY`.
-
-Tavily is used for current web search and URL extraction. It is not used as an LLM provider.
-
-### Cloudinary
-
-Cloudinary is optional for text/URL-only local development and required for persistent deployed image uploads when `STORAGE_DRIVER=cloudinary`.
-
-Set:
-
-- `CLOUDINARY_CLOUD_NAME`
-- `CLOUDINARY_API_KEY`
-- `CLOUDINARY_API_SECRET`
-
-Keep the secret backend-only.
-
-### Base Sepolia
-
-Create a new wallet used only for testnet deployment and attestation. Do not reuse a wallet that holds mainnet assets.
-
-You need:
-
-- its private key in the relevant local `.env` file
-- Base Sepolia test ETH from a faucet
-- an RPC URL
-
-For a demo, the public RPC is:
-
-```text
-https://sepolia.base.org
-```
-
-Base Sepolia chain ID:
-
-```text
-84532
-```
-
-For more reliable deployment, use a provider-specific Base Sepolia RPC URL.
-
----
-
-## 3. Repository Environment Files
-
-Copy examples after the agent creates them:
+Install dependencies from the repository root:
 
 ```bash
-cp apps/backend/.env.example apps/backend/.env
-cp apps/contract/.env.example apps/contract/.env
-cp apps/web/.env.example apps/web/.env.local
+pnpm install --frozen-lockfile
 ```
 
-### Backend local development
+## 3. Create a test wallet
+
+In MetaMask or Coinbase Wallet:
+
+1. Create a new account named `Mesh Ethereum Sepolia`.
+2. Copy its public address.
+3. Open the account security/details menu and export the private key.
+4. Store the private key in a password manager.
+
+Never use the recovery phrase as `DEPLOYER_PRIVATE_KEY`. Never put the private key in a screenshot, Git commit, issue, or chat message.
+
+Ethereum Sepolia network details:
+
+```text
+Network name: Ethereum Sepolia
+Chain ID: 11155111
+Currency: Sepolia ETH
+RPC: https://rpc.sepolia.org
+Explorer: https://sepolia.etherscan.io
+```
+
+## 4. Get test ETH
+
+Use one of the Sepolia faucets listed by Ethereum:
+
+- Alchemy Sepolia faucet
+- Chainstack Sepolia faucet
+- Infura Sepolia faucet
+- QuickNode Sepolia faucet
+- PoW faucet
+
+The official list is at <https://ethereum.org/developers/docs/networks/>. Paste your public wallet address, select Ethereum Sepolia, and request test ETH. Test ETH has no real value, but the wallet needs it to deploy and call the registry.
+
+## 5. Create the environment files
+
+```bash
+cp apps/api/.env.example apps/api/.env
+cp apps/contracts/.env.example apps/contracts/.env
+```
+
+Do not commit either `.env` file.
+
+## 6. Contract environment: `apps/contracts/.env`
+
+Start with this minimal configuration:
+
+```dotenv
+ETHEREUM_SEPOLIA_RPC_URL=https://rpc.sepolia.org
+DEPLOYER_PRIVATE_KEY=0xYOUR_TEST_WALLET_PRIVATE_KEY
+INITIAL_OWNER_ADDRESS=
+INITIAL_OPERATOR_ADDRESS=
+ETHERSCAN_API_KEY=
+MESH_CONTRACT_ADDRESS=
+OPERATOR_ADDRESS=
+OPERATOR_ALLOWED=true
+```
+
+### Contract variables explained
+
+| Variable                   | Meaning                                                      | What to enter                                                   |
+| -------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------- |
+| `ETHEREUM_SEPOLIA_RPC_URL` | URL used by Hardhat to talk to Ethereum Sepolia              | Keep the public default, or use an Alchemy/Infura/QuickNode URL |
+| `DEPLOYER_PRIVATE_KEY`     | Secret key that signs the deployment transaction             | Your new test wallet private key                                |
+| `INITIAL_OWNER_ADDRESS`    | Account that owns the registry                               | Leave blank; the deployer becomes owner                         |
+| `INITIAL_OPERATOR_ADDRESS` | Optional account authorized to attest                        | Leave blank for the simplest setup                              |
+| `ETHERSCAN_API_KEY`        | Optional key for publishing Solidity source                  | Leave blank until you want verification                         |
+| `MESH_CONTRACT_ADDRESS`    | Existing deployed registry address                           | Leave blank before deployment                                   |
+| `OPERATOR_ADDRESS`         | Operator changed by the operator script                      | Leave blank unless adding a second wallet                       |
+| `OPERATOR_ALLOWED`         | Whether the operator script enables or disables the operator | Keep `true` when enabling                                       |
+
+## 7. Deploy the registry
+
+Confirm the wallet has Sepolia ETH, then run:
+
+```bash
+pnpm --filter @mesh/contracts build
+pnpm --filter @mesh/contracts test
+pnpm --filter @mesh/contracts deploy:sepolia
+```
+
+Deployment writes a record to:
+
+```text
+apps/contracts/deployments/11155111.json
+```
+
+Open that file and copy the `address` field. That is the contract address, not the deployment transaction hash.
+
+Optional source verification:
+
+```bash
+pnpm --filter @mesh/contracts exec hardhat verify \
+  --network sepolia \
+  0xYOUR_CONTRACT_ADDRESS \
+  0xYOUR_OWNER_ADDRESS
+```
+
+## 8. Backend environment: `apps/api/.env`
+
+The backend can run without blockchain credentials while you develop the AI pipeline:
 
 ```dotenv
 NODE_ENV=development
@@ -107,24 +146,30 @@ WEB_ORIGINS=http://localhost:3000
 DATABASE_URL=postgresql://mesh:mesh@localhost:5432/mesh
 
 GONKA_BASE_URL=https://api.gonkarouter.io
-GONKA_API_KEY=replace_me
+GONKA_API_KEY=
 GONKA_KIMI_MODEL=moonshotai/Kimi-K2.6
 GONKA_MINIMAX_MODEL=MiniMaxAI/MiniMax-M2.7
 GONKA_MAX_TOKENS=4096
 GONKA_TIMEOUT_MS=120000
+GONKA_MAX_RETRIES=2
+GONKA_RETRY_BASE_MS=30000
 
-TAVILY_API_KEY=replace_me
+TAVILY_API_KEY=
 TAVILY_SEARCH_DEPTH=advanced
 TAVILY_MAX_RESULTS_PER_CLAIM=5
 
 STORAGE_DRIVER=local
 UPLOAD_DIR=./uploads
 MAX_IMAGE_BYTES=5242880
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
 
 ATTESTATION_ENABLED=false
-BASE_CHAIN_ID=84532
-BASE_RPC_URL=https://sepolia.base.org
-BASE_EXPLORER_URL=https://sepolia.basescan.org
+ATTESTATION_NETWORK=ethereum-sepolia
+ATTESTATION_CHAIN_ID=11155111
+ATTESTATION_RPC_URL=https://rpc.sepolia.org
+ATTESTATION_EXPLORER_URL=https://sepolia.etherscan.io
 MESH_CONTRACT_ADDRESS=
 ATTESTOR_PRIVATE_KEY=
 ATTESTATION_CONFIRMATIONS=1
@@ -135,395 +180,133 @@ RATE_LIMIT_MAX=20
 SWAGGER_ENABLED=true
 ```
 
-Start locally with `ATTESTATION_ENABLED=false` until the contract is deployed. This lets the complete off-chain flow run and returns an explicit disabled attestation state.
+### Backend variables explained
 
-### Contract local/Base Sepolia
+#### Runtime and database
+
+| Variable       | Meaning                                         |
+| -------------- | ----------------------------------------------- |
+| `NODE_ENV`     | `development`, `test`, or `production`          |
+| `PORT`         | HTTP port for the API                           |
+| `API_PREFIX`   | Route prefix; normally `api/v1`                 |
+| `WEB_ORIGINS`  | Comma-separated browser origins allowed by CORS |
+| `DATABASE_URL` | PostgreSQL connection string                    |
+
+#### Gonka Router
+
+| Variable              | Meaning                                                     |
+| --------------------- | ----------------------------------------------------------- |
+| `GONKA_BASE_URL`      | Official Gonka API root; keep `https://api.gonkarouter.io`  |
+| `GONKA_API_KEY`       | Secret API key from the Gonka Router dashboard              |
+| `GONKA_KIMI_MODEL`    | Exact Kimi model ID; do not shorten it                      |
+| `GONKA_MINIMAX_MODEL` | Exact MiniMax model ID                                      |
+| `GONKA_MAX_TOKENS`    | Maximum output tokens; keep at least `1024`, default `4096` |
+| `GONKA_TIMEOUT_MS`    | Maximum wait for one model call                             |
+| `GONKA_MAX_RETRIES`   | Number of transient `429`/`5xx` retries                     |
+| `GONKA_RETRY_BASE_MS` | Initial retry delay; `30000` matches Gonka guidance         |
+
+Create `GONKA_API_KEY` at <https://gonkarouter.io/>. It is backend-only.
+
+#### Tavily
+
+| Variable                       | Meaning                                     |
+| ------------------------------ | ------------------------------------------- |
+| `TAVILY_API_KEY`               | Secret key from Tavily                      |
+| `TAVILY_SEARCH_DEPTH`          | `advanced` or `basic` evidence search       |
+| `TAVILY_MAX_RESULTS_PER_CLAIM` | Maximum evidence sources per claim, up to 5 |
+
+Create `TAVILY_API_KEY` at <https://app.tavily.com/>. Tavily retrieves evidence; it is not used as an LLM provider.
+
+#### Storage
+
+| Variable                | Meaning                                                          |
+| ----------------------- | ---------------------------------------------------------------- |
+| `STORAGE_DRIVER`        | `local` for development, `cloudinary` for deployed image storage |
+| `UPLOAD_DIR`            | Local image directory                                            |
+| `MAX_IMAGE_BYTES`       | Maximum upload size; default is 5 MiB                            |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary account name                                          |
+| `CLOUDINARY_API_KEY`    | Cloudinary public API key                                        |
+| `CLOUDINARY_API_SECRET` | Cloudinary secret                                                |
+
+Leave Cloudinary fields empty when `STORAGE_DRIVER=local`.
+
+#### Ethereum Sepolia attestation
+
+| Variable                    | Meaning                                      | Development value                          |
+| --------------------------- | -------------------------------------------- | ------------------------------------------ |
+| `ATTESTATION_ENABLED`       | Turns on blockchain writes                   | `false` until deployment; `true` afterward |
+| `ATTESTATION_NETWORK`       | Human-readable network label                 | `ethereum-sepolia`                         |
+| `ATTESTATION_CHAIN_ID`      | Safety check preventing wrong-network writes | `11155111`                                 |
+| `ATTESTATION_RPC_URL`       | Backend RPC endpoint                         | `https://rpc.sepolia.org`                  |
+| `ATTESTATION_EXPLORER_URL`  | Explorer used to build transaction links     | `https://sepolia.etherscan.io`             |
+| `MESH_CONTRACT_ADDRESS`     | Registry address from deployment JSON        | Empty until deployment                     |
+| `ATTESTOR_PRIVATE_KEY`      | Secret key signing attestation transactions  | Same test wallet key for a simple demo     |
+| `ATTESTATION_CONFIRMATIONS` | Blocks to wait before readback               | `1`                                        |
+
+`ATTESTATION_ENABLED=false` means Mesh still creates complete off-chain passports but does not spend test ETH or call the contract. Set it to `true` only after the registry is deployed and the attestor wallet is funded.
+
+After deployment, update only these values:
 
 ```dotenv
-BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
-DEPLOYER_PRIVATE_KEY=0x_replace_with_testnet_only_key
-INITIAL_OWNER_ADDRESS=0x_replace_with_owner
-INITIAL_OPERATOR_ADDRESS=0x_replace_with_backend_attestor
-ETHERSCAN_API_KEY=
+ATTESTATION_ENABLED=true
+MESH_CONTRACT_ADDRESS=0xTHE_ADDRESS_FROM_11155111_JSON
+ATTESTOR_PRIVATE_KEY=0xTHE_TEST_WALLET_PRIVATE_KEY
 ```
 
-For the simplest demo, deployer, owner, and backend attestor can be the same dedicated testnet wallet. A separate operator is cleaner but not mandatory.
+The deployer wallet is automatically the owner. Because owners can attest, no operator setup is needed for the one-wallet demo.
 
-### Web local development
+## 9. PostgreSQL and migrations
 
-```dotenv
-NEXT_PUBLIC_API_BASE_URL=http://localhost:4000/api/v1
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_BASE_CHAIN_ID=84532
-NEXT_PUBLIC_BASE_EXPLORER_URL=https://sepolia.basescan.org
-NEXT_PUBLIC_MESH_CONTRACT_ADDRESS=
-```
-
----
-
-## 4. Install and Start PostgreSQL
-
-From repository root:
-
-```bash
-corepack enable
-pnpm install --frozen-lockfile
-```
-
-Start PostgreSQL using the repository Compose file:
+Start PostgreSQL:
 
 ```bash
 docker compose up -d postgres
 docker compose ps
 ```
 
-Run backend migrations with the script created by the agent. Typical form:
+Run migrations:
 
 ```bash
-pnpm --dir apps/backend run migration:run
+pnpm --filter @mesh/api migration:run
 ```
 
-Check migration status if a script is provided:
+The migration creates verification, claim, evidence, model response, passport, and attestation tables. The Ethereum migration also updates any legacy Base metadata to `ethereum-sepolia` / `11155111`.
+
+## 10. Start and test Mesh
 
 ```bash
-pnpm --dir apps/backend run migration:show
+pnpm --filter @mesh/api dev
 ```
 
----
+Swagger is available at `http://localhost:4000/docs`.
 
-## 5. Gonka Smoke Tests Before Starting the App
-
-The official Gonka Anthropic-compatible endpoint is `https://api.gonkarouter.io/v1/messages`.
-
-### Kimi
+Run validation:
 
 ```bash
-export GONKA_API_KEY='replace_me'
-
-curl -s https://api.gonkarouter.io/v1/messages \
-  -H "x-api-key: $GONKA_API_KEY" \
-  -H "anthropic-version: 2023-06-01" \
-  -H "content-type: application/json" \
-  -d '{
-    "model": "moonshotai/Kimi-K2.6",
-    "max_tokens": 1024,
-    "messages": [{"role":"user","content":"Reply with just: pong"}]
-  }'
+pnpm --filter @mesh/api lint
+pnpm --filter @mesh/api typecheck
+pnpm --filter @mesh/api test:unit
+pnpm --filter @mesh/api test:e2e
+pnpm --filter @mesh/api build
+pnpm --filter @mesh/contracts build
+pnpm --filter @mesh/contracts test
 ```
 
-Confirm:
-
-- HTTP 200
-- response `id` begins with or resembles `msg_...`
-- `content` contains a text block
-
-### MiniMax
+Check blockchain configuration:
 
 ```bash
-curl -s https://api.gonkarouter.io/v1/messages \
-  -H "x-api-key: $GONKA_API_KEY" \
-  -H "anthropic-version: 2023-06-01" \
-  -H "content-type: application/json" \
-  -d '{
-    "model": "MiniMaxAI/MiniMax-M2.7",
-    "max_tokens": 1024,
-    "messages": [{"role":"user","content":"Reply with just: pong"}]
-  }'
+curl http://localhost:4000/api/v1/health
 ```
 
-Common failures:
-
-- `401`: wrong or missing API key.
-- model unavailable: model ID is case-sensitive and must include the provider prefix.
-- truncated/empty useful output: increase `max_tokens`; keep it at least 1024.
-- `429`: back off and retry rather than sending rapid repeated requests.
-
----
-
-## 6. Tavily Smoke Test
-
-After the backend agent creates a smoke script, prefer running it. A simple direct SDK test can look like:
-
-```bash
-TAVILY_API_KEY='replace_me' node - <<'NODE'
-const { tavily } = require('@tavily/core');
-const client = tavily({ apiKey: process.env.TAVILY_API_KEY });
-client.search('Base Sepolia chain id', { maxResults: 3, searchDepth: 'basic' })
-  .then((result) => console.log(JSON.stringify(result, null, 2)))
-  .catch((error) => { console.error(error); process.exit(1); });
-NODE
-```
-
-Run it from a directory where `@tavily/core` is installed, normally `apps/backend`, or use the repository smoke script.
-
----
-
-## 7. Compile and Test the Contract
-
-Use scripts from `apps/contract/package.json`. Typical commands:
-
-```bash
-pnpm --dir apps/contract run compile
-pnpm --dir apps/contract run test
-```
-
-Start a local EVM node when supported:
-
-```bash
-pnpm --dir apps/contract run node
-```
-
-In another terminal, deploy locally:
-
-```bash
-pnpm --dir apps/contract run deploy:local
-```
-
-Confirm the deployment output includes:
-
-- contract address
-- chain ID
-- deployment transaction
-- owner/operator
-- path to exported ABI
-
----
-
-## 8. Deploy to Base Sepolia
-
-1. Fund the dedicated testnet wallet with Base Sepolia ETH.
-2. Set `BASE_SEPOLIA_RPC_URL` and `DEPLOYER_PRIVATE_KEY` in `apps/contract/.env`.
-3. Deploy:
-
-```bash
-pnpm --dir apps/contract run deploy:base-sepolia
-```
-
-4. Optionally verify the source using the script created by the agent:
-
-```bash
-pnpm --dir apps/contract run verify:base-sepolia -- <CONTRACT_ADDRESS>
-```
-
-5. Copy the contract address into:
-
-`apps/backend/.env`
-
-```dotenv
-ATTESTATION_ENABLED=true
-MESH_CONTRACT_ADDRESS=0x_deployed_address
-ATTESTOR_PRIVATE_KEY=0x_testnet_only_operator_private_key
-```
-
-`apps/web/.env.local`
-
-```dotenv
-NEXT_PUBLIC_MESH_CONTRACT_ADDRESS=0x_deployed_address
-```
-
-6. Ensure the address corresponding to `ATTESTOR_PRIVATE_KEY` is the owner or an authorized operator.
-7. Restart backend and web after changing environment variables.
-
----
-
-## 9. Run the Applications
-
-Run all apps through the root Turbo script when available:
-
-```bash
-pnpm dev
-```
-
-Or separately:
-
-```bash
-pnpm --dir apps/backend run start:dev
-pnpm --dir apps/web run dev
-```
-
-Expected local URLs:
-
-- Web: `http://localhost:3000`
-- Backend: `http://localhost:4000`
-- API: `http://localhost:4000/api/v1`
-- Swagger: `http://localhost:4000/docs`
-
-Health check:
-
-```bash
-curl -s http://localhost:4000/api/v1/health | jq
-```
-
-Health must not print secret values.
-
----
-
-## 10. Test the Complete API Flow
-
-The exact request shape must match generated Swagger. These examples represent the intended contract.
-
-### Text verification
-
-```bash
-curl -X POST http://localhost:4000/api/v1/verifications \
-  -H 'content-type: application/json' \
-  -d '{
-    "inputType": "TEXT",
-    "content": "Nigeria has declared tomorrow a nationwide public holiday.",
-    "forceRefresh": true
-  }' | tee /tmp/mesh-text.json
-```
-
-Confirm the response contains:
-
-- `success: true`
-- `data.passport.publicId`
-- 1–5 claims
-- evidence
-- Kimi and MiniMax model IDs
-- Gonka response IDs
-- deterministic truth and confidence scores
-- integrity hashes
-- confirmed or explicitly disabled/failed attestation
-
-### URL verification
-
-```bash
-curl -X POST http://localhost:4000/api/v1/verifications \
-  -H 'content-type: application/json' \
-  -d '{
-    "inputType": "URL",
-    "url": "https://example.com/article",
-    "forceRefresh": true
-  }' | tee /tmp/mesh-url.json
-```
-
-Use a real public page for the demo.
-
-### Image verification
-
-```bash
-curl -X POST http://localhost:4000/api/v1/verifications \
-  -F 'inputType=IMAGE' \
-  -F 'forceRefresh=true' \
-  -F 'file=@./path/to/test-screenshot.png' \
-  | tee /tmp/mesh-image.json
-```
-
-Confirm the visual-normalization and Kimi investigation calls exist in stored model responses.
-
-### Fetch passport
-
-```bash
-PUBLIC_ID=$(jq -r '.data.passport.publicId' /tmp/mesh-text.json)
-curl -s "http://localhost:4000/api/v1/passports/$PUBLIC_ID" | jq
-```
-
-### Verify integrity
-
-```bash
-curl -s "http://localhost:4000/api/v1/passports/$PUBLIC_ID/integrity" | jq
-```
-
-A successful attested result should return `valid: true` and matching stored/recomputed/on-chain fields.
-
-### Retry attestation
-
-```bash
-curl -X POST "http://localhost:4000/api/v1/passports/$PUBLIC_ID/attest" | jq
-```
-
-Calling this repeatedly must be safe and must not create conflicting duplicate attestations.
-
----
-
-## 11. Automated Test Suite
-
-Run the actual scripts created by the agents. Target commands:
-
-```bash
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm build
-```
-
-App-specific:
-
-```bash
-pnpm --dir apps/backend run test
-pnpm --dir apps/backend run test:e2e
-pnpm --dir apps/contract run test
-pnpm --dir apps/web run test
-pnpm --dir apps/web run test:e2e
-pnpm --dir apps/web run build
-pnpm --dir apps/backend run build
-```
-
-External services must be mocked in CI tests. Real-service smoke tests should be separately gated, for example:
-
-```bash
-RUN_REAL_EXTERNAL_TESTS=true pnpm --dir apps/backend run test:smoke
-```
-
----
-
-## 12. Browser Flow Test
-
-Open `http://localhost:3000` and test:
-
-1. Submit text.
-2. Observe the processing UI.
-3. Reach the passport page.
-4. Expand every claim.
-5. Switch supporting/opposing evidence.
-6. Compare Kimi and MiniMax.
-7. Copy a Gonka response ID.
-8. Open the transaction explorer link.
-9. run integrity verification.
-10. Copy the public link and iframe badge.
-11. Open the badge route directly.
-12. Repeat with URL and image.
-13. Repeat at a mobile viewport.
-
-Playwright should automate a deterministic mocked version of this flow and optionally a real-backend smoke flow.
-
----
-
-## 13. Production Deployment Order
-
-Recommended order:
-
-1. Provision production PostgreSQL.
-2. Deploy and test the Base Sepolia contract.
-3. Deploy backend to Railway, Render, Fly.io, or another long-running Node host.
-4. Set backend environment variables.
-5. Run database migrations as a release step.
-6. Verify backend health and one real API call.
-7. Deploy web to Vercel.
-8. Set web public environment variables.
-9. Add the Vercel origin to backend `WEB_ORIGINS`.
-10. Re-test text, URL, image, attestation, integrity, and badge flow using deployed URLs.
-
-Do not put the long-running verification inside a Vercel route handler; the browser should call the deployed backend directly.
-
----
-
-## 14. Final Pre-Submission Checklist
-
-- [ ] Public GitHub repository is readable.
-- [ ] No `.env` or secret file is committed.
-- [ ] `.env.example` files are complete.
-- [ ] README contains exact setup commands.
-- [ ] Both Gonka model IDs appear in code and demo results.
-- [ ] Gonka response IDs appear in the UI.
-- [ ] Live evidence has URLs and dates.
-- [ ] Truth Score formula is documented.
-- [ ] Contract is deployed to Base Sepolia.
-- [ ] Contract source or ABI is available.
-- [ ] Demo wallet has enough test ETH for several attestations.
-- [ ] Integrity check returns valid.
-- [ ] Public passport and badge URLs work without authentication.
-- [ ] Mobile layout is usable.
-- [ ] Demo examples are tested immediately before recording.
-- [ ] Three-minute demo video shows AI, Web3, public value, and auditability.
+When enabled, health should report Ethereum Sepolia chain ID `11155111` and contract bytecode present.
+
+## 11. Common mistakes
+
+- Using `BASE_*` variables: these are obsolete. Use `ATTESTATION_*` in the backend and `ETHEREUM_SEPOLIA_RPC_URL` in the contract app.
+- Using the recovery phrase instead of a private key.
+- Forgetting to fund the wallet with Ethereum Sepolia ETH.
+- Copying the deployment transaction hash instead of the contract `address`.
+- Setting `ATTESTATION_ENABLED=true` before filling the contract address and attestor key.
+- Using Ethereum Mainnet RPC or real ETH.
+- Putting `GONKA_API_KEY`, `TAVILY_API_KEY`, or private keys in frontend variables.
+- Changing `ATTESTATION_CHAIN_ID` away from `11155111`; the backend intentionally rejects other values.

@@ -1,35 +1,27 @@
-/**
- * Shape of a single chat-style inference request sent to the Gonka Router.
- * Gonka is OpenAI-compatible at the router layer, so this mirrors the
- * /v1/chat/completions contract. Confirm exact field names against
- * https://gonkarouter.io docs before the live demo.
- */
-export interface GonkaChatMessage {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
-}
+import Anthropic from '@anthropic-ai/sdk';
 
-export interface GonkaChatRequest {
-  model: string;
-  messages: GonkaChatMessage[];
-  temperature?: number;
-  response_format?: { type: 'json_object' | 'text' };
+export const GONKA_TRANSPORT = Symbol('GONKA_TRANSPORT');
+export interface GonkaTransport {
+  create(
+    params: Anthropic.MessageCreateParamsNonStreaming,
+    timeoutMs: number,
+  ): Promise<{ message: Anthropic.Message; requestId?: string }>;
 }
-
-export interface GonkaChatResponse {
-  id: string;
+export interface GonkaRequest {
   model: string;
-  choices: Array<{
-    index: number;
-    message: GonkaChatMessage;
-    finish_reason: string;
-  }>;
+  system: string;
+  content: Anthropic.ContentBlockParam[];
+  maxTokens?: number;
+  timeoutMs?: number;
 }
-
-/** Normalised result our services consume, decoupled from the wire format. */
-export interface GonkaCompletion {
-  /** Gonka Router request id — surfaced in the passport for auditability. */
-  requestId: string;
-  model: string;
-  content: string;
+export interface GonkaResult {
+  modelId: string;
+  text: string;
+  responseId: string;
+  providerRequestId: string | null;
+  inputTokens: number;
+  outputTokens: number;
+  latencyMs: number;
+  retryCount: number;
+  relatedAudits?: GonkaResult[];
 }

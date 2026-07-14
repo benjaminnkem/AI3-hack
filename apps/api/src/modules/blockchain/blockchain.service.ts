@@ -1,76 +1,159 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Contract, JsonRpcProvider, Wallet, getBytes } from 'ethers';
-
-export interface AttestationReceipt {
-  transactionHash: string;
-  blockNumber: number;
-  chainId: number;
+import { Contract, JsonRpcProvider, Wallet } from 'ethers';
+import abi from './abi/MeshAttestationRegistry.json';
+export interface IntegrityValues {
+  passportHash: string;
+  inputHash: string;
+  claimsRoot: string;
+  evidenceRoot: string;
+  kimiOutputHash: string;
+  minimaxOutputHash: string;
+  requestIdsHash: string;
+  truthScore: number;
+  verificationVersion: number;
 }
-
-/**
- * ABI for the Mesh attestation registry. Kept minimal — only what the
- * backend needs to write and read attestations.
- */
-const REGISTRY_ABI = [
-  'function attest(bytes32 passportHash, uint16 truthScore, uint16 verificationVersion, string requestId) external returns (uint256)',
-  'function getAttestation(bytes32 passportHash) external view returns (uint16 truthScore, uint16 verificationVersion, uint256 timestamp, string requestId)',
-  'event PassportAttested(bytes32 indexed passportHash, uint16 truthScore, uint256 timestamp)',
-];
-
-/**
- * Writes passport hashes to the on-chain registry via ethers.js.
- *
- * If chain credentials are not configured, attestation is SKIPPED (returns
- * null) rather than faked — the verification still completes and the passport
- * is still hashed; it simply won't carry a blockchain receipt. This keeps the
- * demo runnable without a funded key while remaining honest about state.
- */
+export interface ChainAttestation {
+  inputHash: string;
+  claimsRoot: string;
+  evidenceRoot: string;
+  kimiOutputHash: string;
+  minimaxOutputHash: string;
+  requestIdsHash: string;
+  truthScore: number;
+  verificationVersion: number;
+  timestamp: number;
+  attestor: string;
+}
+export interface AttestationReceipt {
+  transactionHash: string | null;
+  blockNumber: number | null;
+  chainId: number;
+  contractAddress: string;
+  attestor: string | null;
+  existing: boolean;
+}
 @Injectable()
 export class BlockchainService {
   private readonly logger = new Logger(BlockchainService.name);
+  private readonly provider: JsonRpcProvider;
   private readonly contract: Contract | null;
-  private readonly configuredChainId: number;
-
+  readonly enabled: boolean;
   constructor(private readonly config: ConfigService) {
-    const rpcUrl = this.config.get<string>('CHAIN_RPC_URL');
-    const privateKey = this.config.get<string>('CHAIN_PRIVATE_KEY');
-    const contractAddress = this.config.get<string>('CONTRACT_ADDRESS');
-    this.configuredChainId = Number(this.config.get('CHAIN_ID', 0));
-
-    if (rpcUrl && privateKey && contractAddress) {
-      const provider = new JsonRpcProvider(rpcUrl);
-      const wallet = new Wallet(privateKey, provider);
-      this.contract = new Contract(contractAddress, REGISTRY_ABI, wallet);
-    } else {
-      this.contract = null;
-      this.logger.warn('Chain credentials missing — attestations will be skipped.');
+    const chainId = config.get<number>('ATTESTATION_CHAIN_ID', 11155111);
+    this.provider = new JsonRpcProvider(
+      config.get('ATTESTATION_RPC_URL', 'https://rpc.sepolia.org'),
+      chainId,
+      { staticNetwork: true },
+    );
+    this.enabled = config.get<boolean>('ATTESTATION_ENABLED', false);
+    const address = config.get<string>('MESH_CONTRACT_ADDRESS');
+    const key = config.get<string>('ATTESTOR_PRIVATE_KEY');
+    this.contract =
+      this.enabled && address && key
+        ? new Contract(address, abi, new Wallet(key, this.provider))
+        : null;
+  }
+  async attest(values: IntegrityValues): Promise<AttestationReceipt | null> {
+    if (!this.enabled || !this.contract) return null;
+    if ((await this.contract.exists(values.passportHash)) as boolean) {
+      const read = await this.read(values.passportHash);
+      return {
+        transactionHash: null,
+        blockNumber: null,
+        chainId: this.config.get<number>('ATTESTATION_CHAIN_ID', 11155111),
+        contractAddress: String(await this.contract.getAddress()),
+        attestor: read?.attestor ?? null,
+        existing: true,
+      };
     }
-  }
-
-  get enabled(): boolean {
-    return this.contract !== null;
-  }
-
-  async attest(
-    passportHash: string,
-    truthScore: number,
-    version: number,
-    requestId: string,
-  ): Promise<AttestationReceipt | null> {
-    if (!this.contract) return null;
-
-    // bytes32 must be exactly 32 bytes — getBytes validates the 0x-prefixed hash.
-    getBytes(passportHash);
-
-    const tx = await this.contract.attest(passportHash, Math.round(truthScore), version, requestId);
-    const receipt = await tx.wait();
-    this.logger.log(`Attested ${passportHash} in tx ${receipt.hash}`);
-
+    const tx = await this.contract.attestPassport(
+      values.passportHash,
+      values.inputHash,
+      values.claimsRoot,
+      values.evidenceRoot,
+      values.kimiOutputHash,
+      values.minimaxOutputHash,
+      values.requestIdsHash,
+      values.truthScore,
+      values.verificationVersion,
+    );
+    const receipt = await tx.wait(this.config.get('ATTESTATION_CONFIRMATIONS', 1));
+    if (!receipt) throw new Error('Attestation transaction was not mined');
+    const readback = await this.read(values.passportHash);
+    if (!readback || !this.matches(values, readback))
+      throw new Error('Contract readback does not match passport');
+    this.logger.log(
+      JSON.stringify({
+        event: 'attestation.confirmed',
+        passportHash: values.passportHash,
+        transactionHash: receipt.hash,
+      }),
+    );
     return {
       transactionHash: receipt.hash,
       blockNumber: Number(receipt.blockNumber),
-      chainId: this.configuredChainId,
+      chainId: this.config.get<number>('ATTESTATION_CHAIN_ID', 11155111),
+      contractAddress: String(await this.contract.getAddress()),
+      attestor: readback.attestor,
+      existing: false,
     };
+  }
+  async read(passportHash: string): Promise<ChainAttestation | null> {
+    if (!this.contract || !((await this.contract.exists(passportHash)) as boolean)) return null;
+    const a = (await this.contract.getAttestation(passportHash)) as {
+      inputHash: string;
+      claimsRoot: string;
+      evidenceRoot: string;
+      kimiOutputHash: string;
+      minimaxOutputHash: string;
+      requestIdsHash: string;
+      truthScore: bigint;
+      verificationVersion: bigint;
+      timestamp: bigint;
+      attestor: string;
+    };
+    // ethers v6 Result objects expose named tuple fields, but spreading the
+    // result only copies numeric indexes. Map each field explicitly so
+    // readback validation compares the actual on-chain values.
+    return {
+      inputHash: a.inputHash,
+      claimsRoot: a.claimsRoot,
+      evidenceRoot: a.evidenceRoot,
+      kimiOutputHash: a.kimiOutputHash,
+      minimaxOutputHash: a.minimaxOutputHash,
+      requestIdsHash: a.requestIdsHash,
+      truthScore: Number(a.truthScore),
+      verificationVersion: Number(a.verificationVersion),
+      timestamp: Number(a.timestamp),
+      attestor: a.attestor,
+    };
+  }
+  async health(): Promise<{ rpc: boolean; contractCode: boolean }> {
+    try {
+      await this.provider.getBlockNumber();
+      const address = this.config.get<string>('MESH_CONTRACT_ADDRESS');
+      return {
+        rpc: true,
+        contractCode:
+          !this.enabled || (!!address && (await this.provider.getCode(address)) !== '0x'),
+      };
+    } catch {
+      return { rpc: false, contractCode: false };
+    }
+  }
+  private matches(a: IntegrityValues, b: ChainAttestation): boolean {
+    return (
+      [
+        'inputHash',
+        'claimsRoot',
+        'evidenceRoot',
+        'kimiOutputHash',
+        'minimaxOutputHash',
+        'requestIdsHash',
+      ].every((key) => a[key as keyof IntegrityValues] === b[key as keyof ChainAttestation]) &&
+      a.truthScore === b.truthScore &&
+      a.verificationVersion === b.verificationVersion
+    );
   }
 }

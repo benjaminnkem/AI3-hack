@@ -33,7 +33,7 @@ A user must be able to:
 5. Compare Kimi and MiniMax.
 6. See disagreement and adversarial challenges.
 7. Inspect Gonka response IDs and integrity hashes.
-8. Open the Base Sepolia transaction and contract.
+8. Open the Ethereum Sepolia transaction and contract.
 9. run an integrity check.
 10. share the passport or copy an embed badge.
 11. browse recent public passports.
@@ -83,7 +83,7 @@ Below it, include:
 - a visual explanation of an Evidence Passport
 - recent passport cards from the API
 - a protocol/integration section explaining REST API and embeddable badges
-- a concise footer with Gonka and Base Sepolia attribution
+- a concise footer with Gonka and Ethereum Sepolia attribution
 
 Do not hardcode fake passport results as if they were real. Empty states and explicit demo examples are acceptable.
 
@@ -190,7 +190,7 @@ Integrity and Web3:
 - request-ID hash
 - copy buttons and abbreviated display
 - contract address
-- chain ID and Base Sepolia name
+- chain ID and Ethereum Sepolia name
 - transaction hash and block number
 - attestor
 - explorer links

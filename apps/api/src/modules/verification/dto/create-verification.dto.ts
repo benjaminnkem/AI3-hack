@@ -1,23 +1,21 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsBoolean, IsEnum, IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { InputType } from '../../../entities';
-
 export class CreateVerificationDto {
-  @ApiProperty({ enum: InputType, example: InputType.TEXT })
-  @IsEnum(InputType)
-  inputType!: InputType;
-
-  @ApiProperty({
-    example: 'The Great Wall of China is visible from space with the naked eye.',
-    description: 'Raw input: a URL, tweet, or text block. For images, a base64 data URL.',
-  })
-  @IsString()
-  @MinLength(3)
-  @MaxLength(20000)
-  input!: string;
-
-  @ApiProperty({ required: false, description: 'Optional wallet address of the submitter.' })
+  @ApiProperty({ enum: InputType }) @IsEnum(InputType) inputType!: InputType;
+  @ApiPropertyOptional({ maxLength: 10000 })
   @IsOptional()
   @IsString()
-  walletAddress?: string;
+  @MaxLength(10000)
+  content?: string;
+  @ApiPropertyOptional({ format: 'uri' })
+  @IsOptional()
+  @IsUrl({ require_protocol: true })
+  url?: string;
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  forceRefresh = false;
 }

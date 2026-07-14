@@ -10,7 +10,7 @@
 
 ## 1. Executive Summary
 
-Mesh is a decentralized evidence-verification protocol and web application. A user submits a text claim, URL, social post URL, screenshot, or image. Mesh breaks the input into atomic factual claims, gathers current web evidence, asks two independent AI models through Gonka Router to assess the claims, preserves model disagreement, calculates a transparent 0–100 Truth Score, creates a portable Evidence Passport, hashes its important components, and anchors the resulting passport on Base Sepolia.
+Mesh is a decentralized evidence-verification protocol and web application. A user submits a text claim, URL, social post URL, screenshot, or image. Mesh breaks the input into atomic factual claims, gathers current web evidence, asks two independent AI models through Gonka Router to assess the claims, preserves model disagreement, calculates a transparent 0–100 Truth Score, creates a portable Evidence Passport, hashes its important components, and anchors the resulting passport on Ethereum Sepolia.
 
 The product is not presented as an infallible “truth oracle.” It is decision-support infrastructure that makes an investigation reusable, transparent, tamper-evident, and independently auditable.
 
@@ -23,7 +23,7 @@ The hackathon MVP must demonstrate one complete flow:
 5. Show agreement, disagreement, source quality, and adversarial challenges.
 6. Produce a deterministic Truth Score and verdict.
 7. Generate a canonical Evidence Passport and cryptographic integrity values.
-8. Publish a compact attestation to a smart contract on Base Sepolia.
+8. Publish a compact attestation to a smart contract on Ethereum Sepolia.
 9. Display a public passport page, Gonka response IDs, and the blockchain receipt.
 10. Allow anyone to re-check the off-chain passport against its on-chain hash.
 
@@ -63,7 +63,7 @@ An Evidence Passport contains:
 - One of four verdicts: `SUPPORTED`, `UNVERIFIED`, `MISLEADING`, or `CONTRADICTED`.
 - Gonka response/request identifiers for auditability.
 - Claim, evidence, model-output, request-ID, and passport hashes.
-- A Base Sepolia transaction hash and contract verification result.
+- An Ethereum Sepolia transaction hash and contract verification result.
 
 The passport is accessible at a stable public URL and can be represented as an embeddable badge.
 
@@ -109,7 +109,7 @@ A judge can:
 4. See the final score and exactly how it was derived.
 5. See Gonka response IDs.
 6. Create an on-chain attestation.
-7. open the Base Sepolia explorer transaction.
+7. open the Ethereum Sepolia explorer transaction.
 8. Run an integrity verification and receive a valid result.
 9. share a public Evidence Passport URL or badge.
 
@@ -192,7 +192,7 @@ Use existing configured tools where present. When an app is empty or incomplete,
 - Web: Next.js App Router, TypeScript, Tailwind CSS, shadcn/ui, TanStack Query, React Hook Form, Zod, Framer Motion.
 - Backend: NestJS, TypeScript, PostgreSQL, TypeORM migrations, Swagger/OpenAPI, class-validator, structured logging.
 - Contract: Solidity and the existing Hardhat or Foundry setup. If no contract toolchain exists, use Hardhat 3 with TypeScript and the official Ethers or Viem toolbox.
-- EVM network: Base Sepolia, chain ID `84532`.
+- EVM network: Ethereum Sepolia, chain ID `11155111`.
 - Live evidence retrieval: Tavily JavaScript SDK, `@tavily/core`.
 - Image persistence: storage adapter with Cloudinary in deployed environments and local/temp storage in development and tests.
 
@@ -218,11 +218,11 @@ Kimi is listed by Gonka as supporting vision, function calling, reasoning, and s
 
 ### 9.4 Web3 network
 
-Use Base Sepolia for the hackathon attestation because it is inexpensive, EVM-compatible, and easy to inspect.
+Use Ethereum Sepolia for the hackathon attestation because it is EVM-compatible and widely supported by wallets, faucets, and explorers.
 
-- RPC default: `https://sepolia.base.org`
-- Chain ID: `84532`
-- Explorer base: `https://sepolia.basescan.org`
+- RPC default: `https://rpc.sepolia.org`
+- Chain ID: `11155111`
+- Explorer base: `https://sepolia.etherscan.io`
 
 The public RPC is suitable for testing but should be replaceable by an Alchemy, QuickNode, or other provider URL through environment variables.
 
@@ -433,7 +433,7 @@ Use Keccak-256 throughout for EVM compatibility.
 
 ### Stage 8: On-chain attestation
 
-Call the Mesh attestation registry on Base Sepolia using a dedicated testnet backend signer.
+Call the Mesh attestation registry on Ethereum Sepolia using a dedicated testnet backend signer.
 
 The contract stores only:
 
@@ -459,7 +459,7 @@ It must not store:
 - Images.
 - Private information.
 
-The passport can still be returned when the chain is temporarily unavailable, but it must show `ATTESTATION_FAILED` and offer a retry endpoint. A successful hackathon demo must show a confirmed Base Sepolia transaction.
+The passport can still be returned when the chain is temporarily unavailable, but it must show `ATTESTATION_FAILED` and offer a retry endpoint. A successful hackathon demo must show a confirmed Ethereum Sepolia transaction.
 
 ### Stage 9: Public verification
 
@@ -570,13 +570,13 @@ The API should return a structure equivalent to the following. Names may follow 
   },
   "attestation": {
     "status": "CONFIRMED | PENDING | FAILED | DISABLED",
-    "network": "base-sepolia",
-    "chainId": 84532,
+    "network": "ethereum-sepolia",
+    "chainId": 11155111,
     "contractAddress": "0x...",
     "transactionHash": "0x...",
     "blockNumber": 0,
     "attestor": "0x...",
-    "explorerUrl": "https://sepolia.basescan.org/tx/0x..."
+    "explorerUrl": "https://sepolia.etherscan.io/tx/0x..."
   }
 }
 ```
@@ -812,16 +812,16 @@ Contract name: `MeshAttestationRegistry`.
 
 ```solidity
 struct Attestation {
-    bytes32 inputHash;
-    bytes32 claimsRoot;
-    bytes32 evidenceRoot;
-    bytes32 kimiOutputHash;
-    bytes32 minimaxOutputHash;
-    bytes32 requestIdsHash;
-    uint8 truthScore;
-    uint32 verificationVersion;
-    uint64 timestamp;
-    address attestor;
+  bytes32 inputHash;
+  bytes32 claimsRoot;
+  bytes32 evidenceRoot;
+  bytes32 kimiOutputHash;
+  bytes32 minimaxOutputHash;
+  bytes32 requestIdsHash;
+  uint8 truthScore;
+  uint32 verificationVersion;
+  uint64 timestamp;
+  address attestor;
 }
 ```
 
@@ -860,7 +860,7 @@ Test:
 Provide:
 
 - Local deployment.
-- Base Sepolia deployment.
+- Ethereum Sepolia deployment.
 - ABI export for backend use.
 - Optional source verification script.
 - A deployment artifact that records chain ID, contract address, transaction hash, and deployer.
@@ -904,7 +904,7 @@ Required sections:
 - Adversarial challenge section.
 - Gonka audit IDs.
 - Integrity hashes.
-- Base Sepolia attestation receipt and explorer links.
+- Ethereum Sepolia attestation receipt and explorer links.
 - “Verify integrity” action.
 - Copy public link.
 - Copy badge embed code.
@@ -1026,9 +1026,10 @@ CLOUDINARY_API_SECRET=
 MAX_IMAGE_BYTES=5242880
 
 ATTESTATION_ENABLED=true
-BASE_CHAIN_ID=84532
-BASE_RPC_URL=https://sepolia.base.org
-BASE_EXPLORER_URL=https://sepolia.basescan.org
+ATTESTATION_NETWORK=ethereum-sepolia
+ATTESTATION_CHAIN_ID=11155111
+ATTESTATION_RPC_URL=https://rpc.sepolia.org
+ATTESTATION_EXPLORER_URL=https://sepolia.etherscan.io
 MESH_CONTRACT_ADDRESS=
 ATTESTOR_PRIVATE_KEY=
 ATTESTATION_CONFIRMATIONS=1
@@ -1042,7 +1043,7 @@ SWAGGER_ENABLED=true
 ### Contract
 
 ```dotenv
-BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
+ETHEREUM_SEPOLIA_RPC_URL=https://rpc.sepolia.org
 DEPLOYER_PRIVATE_KEY=
 INITIAL_OWNER_ADDRESS=
 INITIAL_OPERATOR_ADDRESS=
@@ -1054,8 +1055,8 @@ ETHERSCAN_API_KEY=
 ```dotenv
 NEXT_PUBLIC_API_BASE_URL=http://localhost:4000/api/v1
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_BASE_CHAIN_ID=84532
-NEXT_PUBLIC_BASE_EXPLORER_URL=https://sepolia.basescan.org
+NEXT_PUBLIC_ATTESTATION_CHAIN_ID=11155111
+NEXT_PUBLIC_ATTESTATION_EXPLORER_URL=https://sepolia.etherscan.io
 NEXT_PUBLIC_MESH_CONTRACT_ADDRESS=
 ```
 
@@ -1118,7 +1119,7 @@ Provide scripts or documented commands that exercise:
 - Gonka MiniMax “pong” call.
 - Tavily search and extract.
 - Local contract deployment and readback.
-- Base Sepolia deployment.
+- Ethereum Sepolia deployment.
 - Complete text verification.
 - Complete URL verification.
 - Complete image verification.
@@ -1141,7 +1142,7 @@ The project is done only when:
 - A text, URL, and image can complete the flow.
 - The score is computed by the documented deterministic formula.
 - Gonka audit IDs are displayed.
-- The smart contract is tested and deployable to Base Sepolia.
+- The smart contract is tested and deployable to Ethereum Sepolia.
 - A passport can be attested and independently checked.
 - `.env.example` files contain every variable with comments or documentation.
 - No real secrets are committed.
@@ -1160,7 +1161,7 @@ The project is done only when:
 6. Expand the adversarial challenge that explains why the result is not absolute.
 7. Reveal the final Truth Score and verdict.
 8. Open the Integrity panel and show the Gonka response IDs and hashes.
-9. Publish or display the Base Sepolia attestation.
+9. Publish or display the Ethereum Sepolia attestation.
 10. Open the transaction in the explorer.
 11. Run “Verify integrity” and show every hash matching.
 12. Copy the public passport link or badge embed.
@@ -1194,8 +1195,8 @@ Closing line:
 - Gonka Router pricing: `https://gonkarouter.io/pricing`
 - Tavily JavaScript quickstart: `https://docs.tavily.com/sdk/javascript/quick-start`
 - Tavily JavaScript reference: `https://docs.tavily.com/sdk/javascript/reference`
-- Base network configuration: `https://docs.base.org/base-chain/quickstart/connecting-to-base`
-- Base faucets: `https://docs.base.org/base-chain/network-information/network-faucets`
+- Ethereum Sepolia network configuration: `https://ethereum.org/developers/docs/networks/`
+- Ethereum Sepolia faucets: `https://ethereum.org/developers/docs/networks/#sepolia`
 - Hardhat documentation: `https://hardhat.org/docs/getting-started`
 
 When implementation details conflict with live official documentation, the live official documentation wins. Do not invent Gonka endpoints, model names, headers, image formats, or response fields.

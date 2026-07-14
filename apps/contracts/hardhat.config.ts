@@ -10,11 +10,13 @@ const config: HardhatUserConfig = {
     settings: { optimizer: { enabled: true, runs: 200 } },
   },
   networks: {
-    // Configure your target chain here; values come from the root .env.
-    testnet: {
-      url: process.env.CHAIN_RPC_URL ?? '',
-      accounts: process.env.CHAIN_PRIVATE_KEY ? [process.env.CHAIN_PRIVATE_KEY] : [],
+    sepolia: {
+      url: process.env.ETHEREUM_SEPOLIA_RPC_URL ?? 'https://rpc.sepolia.org',
+      accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : [],
     },
+  },
+  etherscan: {
+    apiKey: { sepolia: process.env.ETHERSCAN_API_KEY ?? '' },
   },
 };
 

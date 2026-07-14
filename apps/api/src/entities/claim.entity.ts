@@ -1,35 +1,31 @@
-import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { Verification } from './verification.entity';
+import { Column, Entity, Index, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { Evidence } from './evidence.entity';
+import { Verification } from './verification.entity';
 
-export enum ClaimStatus {
-  SUPPORTED = 'supported',
-  CONTRADICTED = 'contradicted',
-  UNVERIFIABLE = 'unverifiable',
-  MIXED = 'mixed',
+export enum Verdict {
+  SUPPORTED = 'SUPPORTED',
+  UNVERIFIED = 'UNVERIFIED',
+  MISLEADING = 'MISLEADING',
+  CONTRADICTED = 'CONTRADICTED',
 }
 
 @Entity('claims')
+@Index(['verificationId'])
 export class Claim {
-  @PrimaryGeneratedColumn('uuid')
-  id!: string;
-
-  @ManyToOne(() => Verification, (v) => v.claims, { onDelete: 'CASCADE' })
+  @PrimaryGeneratedColumn('uuid') id!: string;
+  @ManyToOne(() => Verification, (verification) => verification.claims, { onDelete: 'CASCADE' })
   verification!: Verification;
-
-  @Column({ type: 'uuid' })
-  verificationId!: string;
-
-  @Column({ type: 'text' })
-  claim!: string;
-
-  /** Model-assigned confidence 0-1 that this is a checkable factual claim. */
-  @Column({ type: 'float', default: 0 })
-  confidence!: number;
-
-  @Column({ type: 'enum', enum: ClaimStatus, default: ClaimStatus.UNVERIFIABLE })
-  status!: ClaimStatus;
-
-  @OneToMany(() => Evidence, (e) => e.claim, { cascade: true })
-  evidence!: Evidence[];
+  @Column({ type: 'uuid' }) verificationId!: string;
+  @Column({ type: 'text' }) text!: string;
+  @Column({ type: 'text' }) normalizedText!: string;
+  @Column({ type: 'text', default: '' }) context!: string;
+  @Column({ type: 'smallint' }) importance!: number;
+  @Column({ type: 'boolean', default: false }) dateSensitive!: boolean;
+  @Column({ type: 'jsonb' }) searchQueries!: string[];
+  @Column({ type: 'varchar', length: 66 }) claimHash!: string;
+  @Column({ type: 'smallint', default: 50 }) truthScore!: number;
+  @Column({ type: 'smallint', default: 0 }) confidenceScore!: number;
+  @Column({ type: 'enum', enum: Verdict, default: Verdict.UNVERIFIED }) verdict!: Verdict;
+  @Column({ type: 'text', default: '' }) reasoningSummary!: string;
+  @OneToMany(() => Evidence, (evidence) => evidence.claim, { cascade: true }) evidence!: Evidence[];
 }
