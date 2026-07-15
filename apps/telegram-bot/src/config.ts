@@ -10,15 +10,29 @@ function required(name: string): string {
   return value;
 }
 
-function optional(name: string, fallback: string): string {
+function optional(name: string, fallback = ''): string {
   const value = process.env[name]?.trim();
   return value || fallback;
 }
 
-const allowed = optional('TELEGRAM_ALLOWED_CHAT_IDS', '')
+const allowed = optional('TELEGRAM_ALLOWED_CHAT_IDS')
   .split(',')
   .map((value) => value.trim())
   .filter(Boolean);
+
+const renderExternalUrl = optional('RENDER_EXTERNAL_URL').replace(/\/$/, '');
+const webhookBase =
+  optional('TELEGRAM_WEBHOOK_URL').replace(/\/$/, '') ||
+  optional('WEBHOOK_URL').replace(/\/$/, '') ||
+  renderExternalUrl;
+
+const modeEnv = optional('TELEGRAM_MODE').toLowerCase();
+const mode: 'polling' | 'webhook' =
+  modeEnv === 'webhook' || modeEnv === 'polling'
+    ? modeEnv
+    : webhookBase
+      ? 'webhook'
+      : 'polling';
 
 export const env = {
   telegramToken: required('TELEGRAM_BOT_TOKEN'),
@@ -31,6 +45,11 @@ export const env = {
     30_000,
     Number(optional('MESH_REQUEST_TIMEOUT_MS', '180000')) || 180_000,
   ),
+  mode,
+  port: Number(optional('PORT', '8080')) || 8080,
+  webhookBase,
+  webhookPath: optional('TELEGRAM_WEBHOOK_PATH', '/telegram/webhook') || '/telegram/webhook',
+  webhookSecret: optional('TELEGRAM_WEBHOOK_SECRET'),
 };
 
 export function apiUrl(path: string): string {
@@ -40,4 +59,12 @@ export function apiUrl(path: string): string {
 
 export function passportUrl(publicId: string): string {
   return `${env.webBaseUrl}/passport/${publicId}`;
+}
+
+export function webhookUrl(): string {
+  if (!env.webhookBase) {
+    throw new Error('TELEGRAM_WEBHOOK_URL or RENDER_EXTERNAL_URL is required in webhook mode');
+  }
+  const path = env.webhookPath.startsWith('/') ? env.webhookPath : `/${env.webhookPath}`;
+  return `${env.webhookBase}${path}`;
 }
