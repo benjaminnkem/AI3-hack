@@ -325,6 +325,8 @@ async function startWebhook() {
     server.listen(env.port, () => resolve());
   });
 
+  await bot.init();
+
   await bot.api.setWebhook(url, {
     drop_pending_updates: true,
     secret_token: env.webhookSecret || undefined,
