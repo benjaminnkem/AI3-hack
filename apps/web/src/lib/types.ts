@@ -1,4 +1,4 @@
-export type InputType = 'url' | 'tweet' | 'text' | 'image';
+export type InputType = 'text' | 'url' | 'image' | 'tweet' | string;
 
 export type Verdict =
   | 'supported'
@@ -7,6 +7,8 @@ export type Verdict =
   | 'contradicted'
   | 'unverifiable'
   | string;
+
+/** Canonical backend passport payload shape (after mapping). */
 
 export interface PassportEvidence {
   id: string;
@@ -111,6 +113,11 @@ export interface Passport {
   passportHash: string;
   attestation: Attestation | null;
   generatedAt: string;
+}
+
+export interface PassportListResponse {
+  items: Passport[];
+  nextCursor: string | null;
 }
 
 export interface IntegrityCheckResult {
