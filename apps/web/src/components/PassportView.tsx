@@ -409,10 +409,14 @@ export function PassportView({ passport }: { passport: Passport }) {
                   <span
                     className={cn(
                       'text-xs font-bold',
-                      integrityReport.valid ? 'text-accent' : 'text-warn',
+                      verifying
+                        ? 'text-accent animate-pulse'
+                        : integrityReport.valid
+                          ? 'text-accent'
+                          : 'text-warn',
                     )}
                   >
-                    {integrityReport.valid ? 'VALID' : 'CHECK FAILED'}
+                    {verifying ? 'CHECKING' : integrityReport.valid ? 'VALID' : 'CHECK FAILED'}
                   </span>
                 </div>
                 <div className="space-y-2.5">
