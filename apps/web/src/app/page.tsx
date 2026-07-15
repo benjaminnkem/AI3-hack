@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -76,6 +77,41 @@ const STATS = [
   { label: 'Evidence layer', value: 'Live' },
   { label: 'Network', value: 'Sepolia' },
   { label: 'Audit trail', value: 'Gonka IDs' },
+];
+
+const PRODUCT_SHOTS = [
+  {
+    src: '/screenshots/loading_passport_evidence.png',
+    alt: 'Mesh verification pipeline loading screen with multi-step progress',
+    step: '01',
+    title: 'Live verification pipeline',
+    body: 'Every run shows progress through claim extraction, evidence retrieval, dual-model review, and passport anchoring.',
+    layout: 'wide' as const,
+  },
+  {
+    src: '/screenshots/model_consensus.png',
+    alt: 'Kimi and MiniMax model consensus panel with scores and Gonka response IDs',
+    step: '02',
+    title: 'Independent model consensus',
+    body: 'Kimi and MiniMax investigate in parallel via Gonka. Agreement, confidence, and reasoning stay visible.',
+    layout: 'half' as const,
+  },
+  {
+    src: '/screenshots/on_chain_attestation.png',
+    alt: 'On-chain attestation card with Sepolia transaction and passport hash',
+    step: '03',
+    title: 'On-chain attestation',
+    body: 'Passport hashes land on Ethereum Sepolia with a confirmable transaction, contract, and attestor receipt.',
+    layout: 'half' as const,
+  },
+  {
+    src: '/screenshots/telegram.jpeg',
+    alt: 'Mesh Telegram bot on iPhone returning a contradicted verdict and truth score',
+    step: '04',
+    title: 'Telegram reference client',
+    body: 'Any app can call the same API. The Telegram bot verifies claims in chat and returns a verdict, score, and passport link.',
+    layout: 'phone' as const,
+  },
 ];
 
 export default function Home() {
@@ -274,6 +310,129 @@ export default function Home() {
       </section>
 
       <section className="relative border-y border-border/60 bg-white/[0.015] py-20 lg:py-28">
+        <div className="mx-auto max-w-6xl px-6">
+          <Reveal className="mb-12 max-w-2xl">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+              Product
+            </p>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              See the verification UI
+            </h2>
+            <p className="mt-4 text-muted leading-relaxed">
+              From live pipeline status to dual-model consensus and Sepolia attestation, the product
+              surfaces every step of the investigation.
+            </p>
+          </Reveal>
+
+          <div className="space-y-6">
+            {PRODUCT_SHOTS.filter((shot) => shot.layout === 'wide').map((shot) => (
+              <Reveal key={shot.src}>
+                <figure className="overflow-hidden rounded-[1.75rem] border border-white/10 bg-card/50 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.85)]">
+                  <div className="flex items-center gap-2 border-b border-white/5 px-4 py-3">
+                    <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
+                    <span className="ml-2 font-mono text-[11px] text-muted">
+                      {shot.step} · {shot.title}
+                    </span>
+                  </div>
+                  <div className="relative bg-black/30 p-3 sm:p-5">
+                    <Image
+                      src={shot.src}
+                      alt={shot.alt}
+                      width={1600}
+                      height={1000}
+                      className="h-auto w-full rounded-xl border border-white/5"
+                      sizes="(max-width: 1152px) 100vw, 1152px"
+                      priority={false}
+                    />
+                  </div>
+                  <figcaption className="border-t border-white/5 px-5 py-4 sm:px-6">
+                    <p className="text-sm font-semibold text-white">{shot.title}</p>
+                    <p className="mt-1 text-sm leading-relaxed text-muted">{shot.body}</p>
+                  </figcaption>
+                </figure>
+              </Reveal>
+            ))}
+
+            <Stagger className="grid gap-6 lg:grid-cols-2">
+              {PRODUCT_SHOTS.filter((shot) => shot.layout === 'half').map((shot) => (
+                <StaggerItem key={shot.src}>
+                  <figure className="flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-white/10 bg-card/50 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.8)]">
+                    <div className="flex items-center gap-2 border-b border-white/5 px-4 py-3">
+                      <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
+                      <span className="ml-2 font-mono text-[11px] text-muted">
+                        {shot.step} · {shot.title}
+                      </span>
+                    </div>
+                    <div className="relative flex-1 bg-black/30 p-3 sm:p-4">
+                      <Image
+                        src={shot.src}
+                        alt={shot.alt}
+                        width={1200}
+                        height={900}
+                        className="h-auto w-full rounded-xl border border-white/5"
+                        sizes="(max-width: 1024px) 100vw, 560px"
+                      />
+                    </div>
+                    <figcaption className="border-t border-white/5 px-5 py-4">
+                      <p className="text-sm font-semibold text-white">{shot.title}</p>
+                      <p className="mt-1 text-sm leading-relaxed text-muted">{shot.body}</p>
+                    </figcaption>
+                  </figure>
+                </StaggerItem>
+              ))}
+            </Stagger>
+
+            {PRODUCT_SHOTS.filter((shot) => shot.layout === 'phone').map((shot) => (
+              <Reveal key={shot.src}>
+                <div className="grid items-center gap-8 overflow-hidden rounded-[1.75rem] border border-white/10 bg-card/50 p-6 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.85)] sm:p-8 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12 lg:p-10">
+                  <div className="order-2 space-y-4 lg:order-1">
+                    <p className="font-mono text-xs text-accent">{shot.step}</p>
+                    <h3 className="text-2xl font-bold tracking-tight sm:text-3xl">{shot.title}</h3>
+                    <p className="text-sm leading-relaxed text-muted sm:text-base">{shot.body}</p>
+                    <ul className="space-y-2 text-sm text-muted">
+                      <li className="flex items-start gap-2">
+                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+                        Text, URL, or image in chat
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+                        Same Mesh API as the web app
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+                        Verdict, score, and public passport link
+                      </li>
+                    </ul>
+                  </div>
+
+                  <figure className="order-1 mx-auto w-full max-w-[280px] lg:order-2 lg:max-w-[300px]">
+                    <div className="relative rounded-[2rem] border border-white/10 bg-black p-2 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.9)]">
+                      <div className="absolute left-1/2 top-3 z-10 h-5 w-20 -translate-x-1/2 rounded-full bg-black" />
+                      <Image
+                        src={shot.src}
+                        alt={shot.alt}
+                        width={780}
+                        height={1688}
+                        className="h-auto w-full rounded-[1.5rem]"
+                        sizes="300px"
+                      />
+                    </div>
+                    <figcaption className="mt-4 text-center text-xs text-muted">
+                      Live reply from the Mesh Telegram bot
+                    </figcaption>
+                  </figure>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="relative py-20 lg:py-28">
         <div className="mx-auto max-w-6xl px-6">
           <Reveal className="mb-12 max-w-2xl">
             <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-accent">
