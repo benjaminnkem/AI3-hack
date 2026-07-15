@@ -1,10 +1,12 @@
-import { Link2, ShieldCheck, RefreshCw } from 'lucide-react';
-import { Attestation } from '@/lib/types';
-import { shortHash } from '@/lib/utils';
+'use client';
+
 import { useState } from 'react';
-import { retryAttestation } from '@/lib/api';
+import { Link2, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Attestation } from '@/lib/types';
+import { shortHash } from '@/lib/utils';
+import { retryAttestation } from '@/lib/api';
 
 export function BlockchainCard({
   attestation,
@@ -22,97 +24,128 @@ export function BlockchainCard({
     setRetrying(true);
     try {
       await retryAttestation(publicId);
-      toast.success('Attestation successfully registered on-chain!');
+      toast.success('Attestation registered on-chain');
       queryClient.invalidateQueries({ queryKey: ['passport', publicId] });
       queryClient.invalidateQueries({ queryKey: ['history'] });
     } catch (err: any) {
-      toast.error(err.message || 'Failed to submit attestation.');
+      toast.error(err.message || 'Failed to submit attestation');
     } finally {
       setRetrying(false);
     }
   };
 
-  const isConfirmed = attestation?.status === 'CONFIRMED' || !!attestation?.transactionHash;
+  const status = (attestation?.status || '').toUpperCase();
+  const isConfirmed = status === 'CONFIRMED' || !!attestation?.transactionHash;
+  const isDisabled = status === 'DISABLED';
+  const isFailed = status === 'FAILED';
 
   return (
-    <div className="card p-6">
-      <div className="mb-4 flex items-center justify-between">
+    <div className="rounded-3xl border border-white/8 bg-card/60 p-6">
+      <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <ShieldCheck size={18} className="text-accent" />
-          <h3 className="text-lg font-semibold">On-chain Attestation</h3>
+          <h3 className="text-lg font-semibold">On-chain attestation</h3>
         </div>
-        {attestation?.status && (
-          <span className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded border ${
-            isConfirmed
-              ? 'bg-accent/15 border-accent/30 text-accent'
-              : attestation.status === 'FAILED'
-                ? 'bg-danger/15 border-danger/30 text-danger'
-                : 'bg-surface border-border text-muted'
-          }`}>
+        {attestation?.status ? (
+          <span
+            className={`rounded border px-2 py-0.5 font-mono text-[10px] uppercase ${
+              isConfirmed
+                ? 'border-accent/30 bg-accent/15 text-accent'
+                : isFailed
+                  ? 'border-danger/30 bg-danger/15 text-danger'
+                  : 'border-white/10 bg-white/[0.03] text-muted'
+            }`}
+          >
             {attestation.status}
           </span>
-        )}
+        ) : null}
       </div>
+
       <dl className="space-y-3 text-sm">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <dt className="text-muted">Passport hash</dt>
-          <dd className="font-mono text-accent">{shortHash(passportHash, 8)}</dd>
+          <dd className="font-mono text-xs text-accent" title={passportHash}>
+            {shortHash(passportHash, 8) || '-'}
+          </dd>
         </div>
+
+        {attestation?.network ? (
+          <div className="flex items-center justify-between gap-3">
+            <dt className="text-muted">Network</dt>
+            <dd className="text-right text-xs capitalize">{attestation.network}</dd>
+          </div>
+        ) : null}
+
+        {attestation?.contractAddress ? (
+          <div className="flex items-center justify-between gap-3">
+            <dt className="text-muted">Contract</dt>
+            <dd className="font-mono text-xs" title={attestation.contractAddress}>
+              {shortHash(attestation.contractAddress, 6)}
+            </dd>
+          </div>
+        ) : null}
+
         {isConfirmed && attestation ? (
           <>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3">
               <dt className="text-muted">Transaction</dt>
-              <dd className="flex items-center gap-1.5 font-mono">
-                {attestation.explorerUrl ? (
+              <dd className="flex items-center gap-1.5 font-mono text-xs">
+                {attestation.explorerUrl && attestation.transactionHash ? (
                   <a
                     href={attestation.explorerUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1 hover:text-white hover:underline text-accent"
+                    className="inline-flex items-center gap-1 text-accent hover:underline"
                   >
                     <Link2 size={13} />
-                    {shortHash(attestation.transactionHash || '', 8)}
+                    {shortHash(attestation.transactionHash, 8)}
                   </a>
                 ) : (
-                  <>
-                    <Link2 size={13} />
-                    {shortHash(attestation.transactionHash || '', 8)}
-                  </>
+                  <span>{shortHash(attestation.transactionHash || '', 8) || '-'}</span>
                 )}
               </dd>
             </div>
-            {attestation.blockNumber && (
-              <div className="flex items-center justify-between">
+            {attestation.blockNumber ? (
+              <div className="flex items-center justify-between gap-3">
                 <dt className="text-muted">Block</dt>
-                <dd className="font-mono">{attestation.blockNumber}</dd>
+                <dd className="font-mono text-xs">{attestation.blockNumber}</dd>
               </div>
-            )}
-            {attestation.chainId && (
-              <div className="flex items-center justify-between">
+            ) : null}
+            {attestation.chainId != null ? (
+              <div className="flex items-center justify-between gap-3">
                 <dt className="text-muted">Chain ID</dt>
-                <dd className="font-mono">{attestation.chainId}</dd>
+                <dd className="font-mono text-xs">{attestation.chainId}</dd>
               </div>
-            )}
-            {attestation.attestor && (
-              <div className="flex items-center justify-between">
+            ) : null}
+            {attestation.attestor ? (
+              <div className="flex items-center justify-between gap-3">
                 <dt className="text-muted">Attestor</dt>
-                <dd className="font-mono text-xs">{shortHash(attestation.attestor, 6)}</dd>
+                <dd className="font-mono text-xs" title={attestation.attestor}>
+                  {shortHash(attestation.attestor, 6)}
+                </dd>
               </div>
-            )}
+            ) : null}
           </>
         ) : (
-          <div className="space-y-3 pt-2">
-            <p className="rounded-lg bg-surface p-3 text-xs text-muted leading-relaxed">
-              This passport is hashed and verifiable, but no confirmed on-chain receipt exists yet.
+          <div className="space-y-3 pt-1">
+            <p className="rounded-2xl border border-white/5 bg-black/20 p-3 text-xs leading-relaxed text-muted">
+              {isDisabled
+                ? 'On-chain attestation is disabled for this environment. The passport hash is still stored and verifiable off-chain.'
+                : isFailed
+                  ? 'Attestation was attempted but failed. You can retry if the contract and operator key are configured.'
+                  : 'This passport is hashed and verifiable off-chain, but no confirmed on-chain receipt exists yet.'}
             </p>
-            <button
-              onClick={handleRetry}
-              disabled={retrying}
-              className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-accent py-2 text-xs font-semibold text-background shadow-glow transition hover:opacity-90 disabled:opacity-50"
-            >
-              <RefreshCw size={13} className={retrying ? 'animate-spin' : ''} />
-              {retrying ? 'Attesting...' : 'Register On-chain Attestation'}
-            </button>
+            {!isDisabled ? (
+              <button
+                type="button"
+                onClick={handleRetry}
+                disabled={retrying}
+                className="flex w-full items-center justify-center gap-1.5 rounded-2xl bg-accent py-2.5 text-xs font-semibold text-background shadow-glow transition hover:opacity-90 disabled:opacity-50"
+              >
+                <RefreshCw size={13} className={retrying ? 'animate-spin' : ''} />
+                {retrying ? 'Attesting…' : 'Register on-chain attestation'}
+              </button>
+            ) : null}
           </div>
         )}
       </dl>

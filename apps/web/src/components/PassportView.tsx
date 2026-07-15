@@ -1,79 +1,75 @@
 'use client';
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  CheckCircle2, 
-  XCircle, 
-  AlertCircle, 
-  HelpCircle, 
-  ShieldCheck, 
-  Copy, 
-  Check, 
-  ExternalLink, 
-  Download, 
-  AlertTriangle, 
-  TrendingUp, 
+import { motion } from 'framer-motion';
+import {
+  AlertCircle,
+  Check,
+  CheckCircle2,
   Code,
-  Sparkles
+  Copy,
+  Download,
+  ExternalLink,
+  FileText,
+  Image as ImageIcon,
+  Link2,
+  ShieldCheck,
 } from 'lucide-react';
-import { Passport } from '@/lib/types';
+import { IntegrityCheckResult, Passport } from '@/lib/types';
 import { TruthScoreGauge } from './TruthScoreGauge';
 import { ConsensusCard } from './ConsensusCard';
 import { ClaimCard } from './ClaimCard';
 import { BlockchainCard } from './BlockchainCard';
-import { scoreMeta, shortHash } from '@/lib/utils';
+import { cn, formatScore, shortHash, verdictMeta } from '@/lib/utils';
 import { verifyIntegrity } from '@/lib/api';
-import { ethers } from 'ethers';
+
+type StepStatus = 'pending' | 'success' | 'failed' | 'skipped';
+
+interface IntegrityStep {
+  name: string;
+  status: StepStatus;
+  detail?: string;
+}
+
+function inputTypeIcon(type: string) {
+  const t = type.toLowerCase();
+  if (t === 'url') return Link2;
+  if (t === 'image') return ImageIcon;
+  return FileText;
+}
 
 export function PassportView({ passport }: { passport: Passport }) {
-  const [showDemo, setShowDemo] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedEmbed, setCopiedEmbed] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [integrityReport, setIntegrityReport] = useState<{
     ran: boolean;
     valid: boolean;
-    steps: { name: string; status: 'pending' | 'success' | 'failed'; detail?: string }[];
+    steps: IntegrityStep[];
   } | null>(null);
 
-  const meta = scoreMeta(passport.truthScore);
+  const meta = verdictMeta(passport.verdict);
+  const InputIcon = inputTypeIcon(passport.input.type);
+  const challenges = passport.consensus.adversarialChallenges || [];
+  const openChallenges = challenges.filter((c) => !c.resolved);
 
-  const getVerdictLabel = (verdict: string) => {
-    const v = verdict.toLowerCase();
-    if (v === 'true' || v === 'supported') return 'Supported';
-    if (v === 'likely_true') return 'Likely True';
-    if (v === 'mixed' || v === 'unverified') return 'Mixed';
-    if (v === 'likely_false' || v === 'misleading') return 'Likely False';
-    if (v === 'false' || v === 'contradicted') return 'Contradicted';
-    return 'Unverifiable';
-  };
-
-  const getVerdictBg = (verdict: string) => {
-    const v = verdict.toLowerCase();
-    if (v === 'true' || v === 'supported') return 'bg-accent/10 text-accent border-accent/20';
-    if (v === 'likely_true') return 'bg-[#7fe37f]/10 text-[#7fe37f] border-[#7fe37f]/20';
-    if (v === 'mixed' || v === 'unverified') return 'bg-warn/10 text-warn border-warn/20';
-    if (v === 'likely_false' || v === 'misleading') return 'bg-[#f0913a]/10 text-[#f0913a] border-[#f0913a]/20';
-    return 'bg-danger/10 text-danger border-danger/20';
-  };
-
-  const handleCopyLink = () => {
+  const handleCopyLink = async () => {
     const url = `${window.location.origin}/passport/${passport.publicId}`;
-    navigator.clipboard.writeText(url);
+    await navigator.clipboard.writeText(url);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  const handleCopyEmbed = () => {
+  const handleCopyEmbed = async () => {
     const embedCode = `<iframe src="${window.location.origin}/badge/${passport.publicId}" style="border:none;width:320px;height:120px;background:transparent;" title="Mesh Evidence Badge"></iframe>`;
-    navigator.clipboard.writeText(embedCode);
+    await navigator.clipboard.writeText(embedCode);
     setCopiedEmbed(true);
     setTimeout(() => setCopiedEmbed(false), 2000);
   };
 
   const handleDownloadJson = () => {
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(passport, null, 2));
+    const dataStr =
+      'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(passport, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute('href', dataStr);
     downloadAnchor.setAttribute('download', `passport_${passport.publicId}.json`);
@@ -88,465 +84,380 @@ export function PassportView({ passport }: { passport: Passport }) {
       ran: true,
       valid: false,
       steps: [
-        { name: 'Checking schema version compliance (v1.0.0)', status: 'pending' },
-        { name: 'Verifying off-chain payload structure', status: 'pending' },
-        { name: 'Recomputing cryptographic roots (claims & evidence)', status: 'pending' },
-        { name: 'Comparing off-chain hash with on-chain attestation', status: 'pending' }
-      ]
+        { name: 'Fetch integrity report from API', status: 'pending' },
+        { name: 'Compare recomputed roots with stored passport', status: 'pending' },
+        { name: 'Compare stored values with on-chain attestation', status: 'pending' },
+      ],
     });
 
-    let schemaOk = false;
-    let structureOk = false;
-    let rootsOk = false;
-    let chainOk = false;
-
-    // Step 1: Schema Compliance
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    if (passport.inputType && passport.publicId) {
-      schemaOk = true;
-      setIntegrityReport(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          steps: prev.steps.map((s, idx) => idx === 0 ? { ...s, status: 'success', detail: 'Schema compatibility: v1.0.0 (OK)' } : s)
-        };
-      });
-    } else {
-      setIntegrityReport(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          steps: prev.steps.map((s, idx) => idx === 0 ? { ...s, status: 'failed', detail: 'Missing schema identifiers.' } : s)
-        };
-      });
-    }
-
-    // Step 2: Off-chain Payload Structure
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    if (passport.claims && passport.verdict && typeof passport.truthScore === 'number') {
-      structureOk = true;
-      setIntegrityReport(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          steps: prev.steps.map((s, idx) => idx === 1 ? { ...s, status: 'success', detail: 'Payload matches canonical Evidence Passport format' } : s)
-        };
-      });
-    } else {
-      setIntegrityReport(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          steps: prev.steps.map((s, idx) => idx === 1 ? { ...s, status: 'failed', detail: 'Missing essential passport payload keys.' } : s)
-        };
-      });
-    }
-
-    // Step 3: Recompute cryptographic roots (via backend api)
-    let backendReport: any = null;
     try {
-      backendReport = await verifyIntegrity(passport.publicId);
-      rootsOk = !!backendReport?.valid;
-      setIntegrityReport(prev => {
+      const report: IntegrityCheckResult = await verifyIntegrity(passport.publicId);
+
+      const hashKeys = [
+        'passportHash',
+        'claimsRoot',
+        'evidenceRoot',
+        'kimiOutputHash',
+        'minimaxOutputHash',
+        'requestIdsHash',
+      ] as const;
+
+      const rootMatches = hashKeys.every((key) => report.matches?.[key] === true);
+      const failedRoots = hashKeys.filter((key) => report.matches?.[key] !== true);
+
+      setIntegrityReport((prev) => {
         if (!prev) return null;
+        const steps = [...prev.steps];
+        steps[0] = {
+          ...steps[0],
+          status: 'success',
+          detail: `Schema ${passport.schemaVersion} · version ${passport.version}`,
+        };
+        steps[1] = {
+          ...steps[1],
+          status: rootMatches ? 'success' : 'failed',
+          detail: rootMatches
+            ? `Passport hash ${shortHash(report.stored?.passportHash || passport.passportHash, 8)} matches recomputed roots`
+            : `Mismatch on: ${failedRoots.join(', ') || 'unknown fields'}`,
+        };
+
+        const onChain = report.matches?.onChain;
+        if (!onChain) {
+          steps[2] = {
+            ...steps[2],
+            status: report.valid ? 'skipped' : 'failed',
+            detail: report.valid
+              ? 'No on-chain record required or available; off-chain integrity is valid'
+              : 'No matching on-chain attestation found for this passport hash',
+          };
+        } else if (typeof onChain === 'object') {
+          const chainEntries = Object.entries(onChain);
+          const chainOk = chainEntries.every(([, value]) => value === true);
+          const bad = chainEntries.filter(([, value]) => value !== true).map(([key]) => key);
+          steps[2] = {
+            ...steps[2],
+            status: chainOk ? 'success' : 'failed',
+            detail: chainOk
+              ? `On-chain fields match for score ${formatScore(passport.truthScore)}`
+              : `On-chain mismatch: ${bad.join(', ')}`,
+          };
+        }
+
         return {
-          ...prev,
-          steps: prev.steps.map((s, idx) => idx === 2 ? {
-            ...s,
-            status: rootsOk ? 'success' : 'failed',
-            detail: rootsOk 
-              ? `Verification matches! Claims Root: ${shortHash(backendReport.stored?.claimsRoot || '', 6)}, Evidence Root: ${shortHash(backendReport.stored?.evidenceRoot || '', 6)}`
-              : `Root mismatch: Computed passport hash does not match stored hash.`
-          } : s)
+          ran: true,
+          valid: !!report.valid,
+          steps,
         };
       });
     } catch (err: any) {
-      setIntegrityReport(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          steps: prev.steps.map((s, idx) => idx === 2 ? {
-            ...s,
+      setIntegrityReport({
+        ran: true,
+        valid: false,
+        steps: [
+          {
+            name: 'Fetch integrity report from API',
             status: 'failed',
-            detail: `Server-side validation failed: ${err.message}`
-          } : s)
-        };
+            detail: err?.message || 'Integrity endpoint failed',
+          },
+          {
+            name: 'Compare recomputed roots with stored passport',
+            status: 'skipped',
+            detail: 'Skipped after API failure',
+          },
+          {
+            name: 'Compare stored values with on-chain attestation',
+            status: 'skipped',
+            detail: 'Skipped after API failure',
+          },
+        ],
       });
+    } finally {
+      setVerifying(false);
     }
-
-    // Step 4: Compare with on-chain attestation (via client-side direct contract query)
-    if (passport.attestation?.contractAddress && passport.attestation.transactionHash) {
-      try {
-        const MESH_ABI = [
-          "function exists(bytes32 passportHash) external view returns (bool)",
-          "function getAttestation(bytes32 passportHash) external view returns (tuple(bytes32 inputHash, bytes32 claimsRoot, bytes32 evidenceRoot, bytes32 kimiOutputHash, bytes32 minimaxOutputHash, bytes32 requestIdsHash, uint8 truthScore, uint32 verificationVersion, uint64 timestamp, address attestor))"
-        ];
-        const provider = new ethers.JsonRpcProvider('https://rpc.sepolia.org');
-        const contract = new ethers.Contract(passport.attestation.contractAddress, MESH_ABI, provider);
-        
-        const existsOnChain = await contract.exists(passport.passportHash);
-        if (existsOnChain) {
-          const att = await contract.getAttestation(passport.passportHash);
-          const truthScoreMatches = Number(att.truthScore) === passport.truthScore;
-          
-          if (truthScoreMatches) {
-            chainOk = true;
-            setIntegrityReport(prev => {
-              if (!prev) return null;
-              return {
-                ...prev,
-                valid: schemaOk && structureOk && rootsOk && chainOk,
-                steps: prev.steps.map((s, idx) => idx === 3 ? {
-                  ...s,
-                  status: 'success',
-                  detail: `On-chain receipt verified. Attestor: ${shortHash(att.attestor, 6)}, Truth Score matches contract: ${att.truthScore}/100.`
-                } : s)
-              };
-            });
-          } else {
-            setIntegrityReport(prev => {
-              if (!prev) return null;
-              return {
-                ...prev,
-                steps: prev.steps.map((s, idx) => idx === 3 ? {
-                  ...s,
-                  status: 'failed',
-                  detail: `On-chain data mismatch: Truth score in passport (${passport.truthScore}) does not match contract (${att.truthScore}).`
-                } : s)
-              };
-            });
-          }
-        } else {
-          setIntegrityReport(prev => {
-            if (!prev) return null;
-            return {
-              ...prev,
-              steps: prev.steps.map((s, idx) => idx === 3 ? {
-                ...s,
-                status: 'failed',
-                detail: 'Passport hash not found in on-chain registry mapping.'
-              } : s)
-            };
-          });
-        }
-      } catch (err: any) {
-        setIntegrityReport(prev => {
-          if (!prev) return null;
-          return {
-            ...prev,
-            steps: prev.steps.map((s, idx) => idx === 3 ? {
-              ...s,
-              status: 'failed',
-              detail: `Browser RPC error verifying contract: ${err.message}`
-            } : s)
-          };
-        });
-      }
-    } else {
-      setIntegrityReport(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          steps: prev.steps.map((s, idx) => idx === 3 ? {
-            ...s,
-            status: 'failed',
-            detail: 'Unanchored: Passport does not contain on-chain attestation receipts.'
-          } : s)
-        };
-      });
-    }
-
-    setVerifying(false);
-    setIntegrityReport(prev => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        valid: schemaOk && structureOk && rootsOk && chainOk
-      };
-    });
   };
 
-  const demoClaims = [
-    {
-      claim: "NASA officially stated astronauts can resolve the Great Wall of China with naked eye.",
-      confidence: 0.95,
-      status: "contradicted",
-      evidence: [
-        {
-          title: "NASA Spaceflight Myths and Misconceptions",
-          url: "https://www.nasa.gov/audience/forstudents/5-8/features/F_Great_Wall_of_China.html",
-          domain: "nasa.gov",
-          excerpt: "NASA states that the Great Wall is generally not visible to the naked eye from low Earth orbit. Under perfect conditions, a viewer might resolve it, but it requires extreme vision or photographic zoom lenses.",
-          direction: "opposes",
-          quality: 0.95,
-          published: "2024-05-10"
-        },
-        {
-          title: "Scientific American: The Great Wall from Space Myth",
-          url: "https://www.scientificamerican.com/article/is-chinas-great-wall-visible-from-space/",
-          domain: "scientificamerican.com",
-          excerpt: "Astronauts have confirmed you cannot see the wall with the naked eye because the materials match the surrounding soil and the width is too narrow.",
-          direction: "opposes",
-          quality: 0.90,
-          published: "2023-08-15"
-        }
-      ],
-      challenge: {
-        issue: "Optical diffraction limits of the human pupil make a 6-meter wide wall invisible at 160km altitude.",
-        severity: 85,
-        resolved: true,
-        resolution: "Physiological and optical physics confirm the impossibility of naked eye visibility."
-      }
-    },
-    {
-      claim: "Under rare atmospheric conditions, astronaut Leroy Chiao captured a photograph of the Wall.",
-      confidence: 0.88,
-      status: "supported",
-      evidence: [
-        {
-          title: "Leroy Chiao Orbit Imagery Analysis",
-          url: "https://www.space.com/astronaut-photos-great-wall-china.html",
-          domain: "space.com",
-          excerpt: "Leroy Chiao took a digital photograph from the ISS that showed small segments of the Wall, confirmed later by ground control mapping.",
-          direction: "supports",
-          quality: 0.88,
-          published: "2024-01-20"
-        }
-      ]
-    }
-  ];
+  const integrityRows = [
+    { label: 'Passport hash', value: passport.integrity.passportHash || passport.passportHash },
+    { label: 'Input hash', value: passport.input.inputHash },
+    { label: 'Claims root', value: passport.integrity.claimsRoot },
+    { label: 'Evidence root', value: passport.integrity.evidenceRoot },
+    { label: 'Kimi output hash', value: passport.integrity.kimiOutputHash },
+    { label: 'MiniMax output hash', value: passport.integrity.minimaxOutputHash },
+    { label: 'Request IDs hash', value: passport.integrity.requestIdsHash },
+  ].filter((row) => row.value);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
-      <div className="lg:col-span-3 card p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-mono text-xs text-muted uppercase tracking-wider">Public Passport ID</span>
-            <span className="font-mono text-sm font-semibold">{passport.publicId}</span>
+    <div className="space-y-6">
+      <div className="rounded-3xl border border-white/8 bg-card/60 p-5 sm:p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                Public passport
+              </span>
+              <span className="rounded-full border border-white/8 bg-white/[0.03] px-2 py-0.5 text-[10px] text-muted">
+                v{passport.version}
+              </span>
+              <span className="rounded-full border border-white/8 bg-white/[0.03] px-2 py-0.5 text-[10px] text-muted">
+                schema {passport.schemaVersion}
+              </span>
+            </div>
+            <p className="mt-2 font-mono text-sm font-semibold sm:text-base">{passport.publicId}</p>
+            <p className="mt-1 text-xs text-muted">
+              Generated {new Date(passport.generatedAt).toLocaleString()}
+              {passport.verificationId ? ` · Verification ${shortHash(passport.verificationId, 4)}` : ''}
+            </p>
           </div>
-          <p className="text-xs text-muted mt-1">Generated: {new Date(passport.timestamp).toLocaleString()}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={handleCopyLink}
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium transition hover:border-accent"
-          >
-            {copiedLink ? <Check size={12} className="text-accent" /> : <Copy size={12} />}
-            {copiedLink ? 'Copied Link' : 'Copy Link'}
-          </button>
-          <button
-            onClick={handleCopyEmbed}
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium transition hover:border-accent"
-          >
-            {copiedEmbed ? <Check size={12} className="text-accent" /> : <Code size={12} />}
-            {copiedEmbed ? 'Copied Code' : 'Embed Badge'}
-          </button>
-          <button
-            onClick={handleDownloadJson}
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium transition hover:border-accent"
-          >
-            <Download size={12} />
-            JSON
-          </button>
-          <button
-            onClick={() => setShowDemo(!showDemo)}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium border transition ${
-              showDemo 
-                ? 'bg-accent/10 border-accent/30 text-accent' 
-                : 'bg-surface border-border text-muted hover:border-accent hover:text-white'
-            }`}
-          >
-            <Sparkles size={12} />
-            Demo Mode
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-medium transition hover:border-accent/40"
+            >
+              {copiedLink ? <Check size={12} className="text-accent" /> : <Copy size={12} />}
+              {copiedLink ? 'Copied link' : 'Copy link'}
+            </button>
+            <button
+              type="button"
+              onClick={handleCopyEmbed}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-medium transition hover:border-accent/40"
+            >
+              {copiedEmbed ? <Check size={12} className="text-accent" /> : <Code size={12} />}
+              {copiedEmbed ? 'Copied embed' : 'Embed badge'}
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadJson}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-medium transition hover:border-accent/40"
+            >
+              <Download size={12} />
+              JSON
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="card flex flex-col items-center justify-center gap-6 p-8 lg:col-span-1">
-        <TruthScoreGauge score={passport.truthScore} />
-        <div className="text-center">
-          <span className={`inline-block rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wider ${getVerdictBg(passport.verdict)}`}>
-            {getVerdictLabel(passport.verdict)}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="flex flex-col items-center justify-center gap-5 rounded-3xl border border-white/8 bg-card/60 p-8 lg:col-span-1">
+          <TruthScoreGauge score={passport.truthScore} verdict={passport.verdict} />
+          <div className="text-center">
+            <span
+              className={cn(
+                'inline-block rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wider',
+                meta.className,
+              )}
+            >
+              {meta.label}
+            </span>
+            <div className="mt-4 grid grid-cols-2 gap-3 text-left">
+              <div className="rounded-2xl border border-white/5 bg-black/20 px-3 py-2">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Truth</p>
+                <p className="text-lg font-bold tabular-nums">{formatScore(passport.truthScore)}</p>
+              </div>
+              <div className="rounded-2xl border border-white/5 bg-black/20 px-3 py-2">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Confidence</p>
+                <p className="text-lg font-bold tabular-nums">
+                  {formatScore(passport.confidenceScore)}
+                </p>
+              </div>
+            </div>
+            {passport.summary ? (
+              <p className="mt-4 text-sm leading-relaxed text-muted">{passport.summary}</p>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="lg:col-span-2">
+          <ConsensusCard consensus={passport.consensus} models={passport.modelResponses} />
+        </div>
+      </div>
+
+      <div className="rounded-3xl border border-white/8 bg-card/60 p-5 sm:p-6">
+        <div className="mb-3 flex items-center gap-2">
+          <InputIcon size={15} className="text-accent" />
+          <h4 className="text-sm font-semibold">Resolved input</h4>
+          <span className="rounded-full border border-white/8 bg-white/[0.03] px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted">
+            {passport.input.type}
           </span>
-          <p className="text-sm text-muted mt-3 leading-relaxed px-4">{passport.summary}</p>
         </div>
-      </div>
 
-      <div className="lg:col-span-2">
-        <ConsensusCard consensus={passport.consensus} models={passport.modelResponses} />
-      </div>
-
-      <div className="lg:col-span-3 card p-6">
-        <h4 className="text-sm font-semibold text-muted uppercase tracking-wider mb-3">Resolved Input Preview</h4>
-        {passport.inputType === 'image' && passport.originalInput?.startsWith('data:image') ? (
-          <div className="rounded-xl border border-border bg-surface p-4 max-w-md">
-            <img 
-              src={passport.originalInput} 
-              alt="Verified input preview" 
-              className="max-h-48 rounded object-contain"
-            />
+        {passport.input.type === 'image' && passport.input.imageUrl ? (
+          <div className="space-y-3">
+            <div className="max-w-md overflow-hidden rounded-2xl border border-white/8 bg-black/20 p-3">
+              <img
+                src={passport.input.imageUrl}
+                alt="Verified input"
+                className="max-h-56 w-full rounded-xl object-contain"
+              />
+            </div>
+            {passport.input.displayText ? (
+              <p className="text-sm leading-relaxed text-muted">{passport.input.displayText}</p>
+            ) : null}
           </div>
-        ) : passport.inputType === 'url' ? (
-          <div className="flex items-center gap-2 rounded-xl border border-border bg-surface p-4 font-mono text-sm text-accent">
-            <ExternalLink size={14} className="shrink-0" />
-            <a href={passport.originalInput} target="_blank" rel="noopener noreferrer" className="hover:underline break-all">
-              {passport.originalInput}
-            </a>
+        ) : passport.input.type === 'url' && (passport.input.sourceUrl || passport.input.displayText) ? (
+          <div className="space-y-3">
+            {passport.input.sourceUrl ? (
+              <a
+                href={passport.input.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex max-w-full items-center gap-2 rounded-2xl border border-white/8 bg-black/20 px-4 py-3 font-mono text-sm text-accent transition hover:border-accent/30"
+              >
+                <ExternalLink size={14} className="shrink-0" />
+                <span className="break-all">{passport.input.sourceUrl}</span>
+              </a>
+            ) : null}
+            {passport.input.displayText ? (
+              <p className="text-sm leading-relaxed text-muted">{passport.input.displayText}</p>
+            ) : null}
           </div>
         ) : (
-          <blockquote className="rounded-xl border border-border bg-surface p-4 text-sm italic leading-relaxed text-muted">
-            "{passport.originalInput || 'Text content resolved for verification.'}"
+          <blockquote className="rounded-2xl border border-white/8 bg-black/20 p-4 text-sm leading-relaxed text-muted">
+            {passport.input.displayText || 'No display text was stored for this passport.'}
           </blockquote>
         )}
       </div>
 
-      <div className="space-y-4 lg:col-span-2">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Extracted Claims & Evidence</h3>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="space-y-4 lg:col-span-2">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-semibold">Claims and evidence</h3>
+              <p className="mt-1 text-xs text-muted">
+                {passport.claims.length} claim{passport.claims.length === 1 ? '' : 's'} ·{' '}
+                {passport.evidence.length} evidence item
+                {passport.evidence.length === 1 ? '' : 's'}
+                {openChallenges.length > 0
+                  ? ` · ${openChallenges.length} open challenge${openChallenges.length === 1 ? '' : 's'}`
+                  : ''}
+              </p>
+            </div>
+          </div>
+
+          {passport.claims.length > 0 ? (
+            <div className="space-y-3">
+              {passport.claims.map((claim) => (
+                <ClaimCard key={claim.id || claim.text} claim={claim} challenges={challenges} />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-3xl border border-dashed border-white/10 bg-card/40 px-6 py-12 text-center">
+              <p className="text-sm text-muted">
+                No independently verifiable factual claims were extracted from this input.
+              </p>
+            </div>
+          )}
         </div>
 
-        {showDemo ? (
-          <div className="space-y-4">
-            {demoClaims.map((item, index) => (
-              <div key={index} className="card p-5 space-y-4">
-                <div className="flex items-start gap-3">
-                  {item.status === 'contradicted' ? (
-                    <XCircle size={18} className="text-danger mt-0.5 shrink-0" />
-                  ) : (
-                    <CheckCircle2 size={18} className="text-accent mt-0.5 shrink-0" />
-                  )}
-                  <div>
-                    <p className="text-sm font-medium">{item.claim}</p>
-                    <div className="mt-1.5 flex items-center gap-2 text-xs text-muted">
-                      <span className="capitalize font-semibold text-accent soft">{item.status}</span>
-                      <span>·</span>
-                      <span>{Math.round(item.confidence * 100)}% checkable</span>
-                    </div>
-                  </div>
-                </div>
+        <div className="space-y-5">
+          <BlockchainCard
+            attestation={passport.attestation}
+            passportHash={passport.passportHash}
+            publicId={passport.publicId}
+          />
 
-                <div className="border-t border-border/50 pt-3 space-y-3">
-                  <h4 className="text-xs font-semibold text-muted uppercase tracking-wider">Web Evidence Retrieval</h4>
-                  {item.evidence.map((ev, evIdx) => (
-                    <div key={evIdx} className="rounded-lg border border-border bg-surface/50 p-3">
-                      <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <span className="font-semibold text-xs text-white">{ev.title}</span>
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                          ev.direction === 'supports' ? 'bg-accent/10 text-accent' : 'bg-danger/10 text-danger'
-                        }`}>
-                          {ev.direction === 'supports' ? 'Supports' : 'Opposes'}
+          <div className="rounded-3xl border border-white/8 bg-card/60 p-6">
+            <div className="mb-3 flex items-center gap-2">
+              <ShieldCheck size={18} className="text-accent" />
+              <h3 className="text-lg font-semibold">Integrity</h3>
+            </div>
+            <p className="mb-4 text-xs leading-relaxed text-muted">
+              Recompute cryptographic roots from the stored passport and compare them with the API
+              integrity endpoint and on-chain attestation when available.
+            </p>
+
+            <div className="mb-4 space-y-2">
+              {integrityRows.map((row) => (
+                <div
+                  key={row.label}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-black/20 px-3 py-2"
+                >
+                  <span className="text-[11px] text-muted">{row.label}</span>
+                  <span className="font-mono text-[10px] text-white/80" title={row.value}>
+                    {shortHash(row.value, 6)}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={runIntegrityCheck}
+              disabled={verifying}
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.03] py-2.5 text-xs font-semibold transition hover:border-accent/40 disabled:opacity-50"
+            >
+              {verifying ? 'Running integrity check…' : 'Verify integrity'}
+            </button>
+
+            {integrityReport?.ran ? (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-4 space-y-3 border-t border-white/5 pt-4"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                    Status
+                  </span>
+                  <span
+                    className={cn(
+                      'text-xs font-bold',
+                      integrityReport.valid ? 'text-accent' : 'text-warn',
+                    )}
+                  >
+                    {integrityReport.valid ? 'VALID' : 'CHECK FAILED'}
+                  </span>
+                </div>
+                <div className="space-y-2.5">
+                  {integrityReport.steps.map((step) => (
+                    <div key={step.name} className="text-xs">
+                      <div className="flex items-start gap-2">
+                        {step.status === 'pending' ? (
+                          <div className="mt-0.5 h-3 w-3 animate-spin rounded-full border border-muted border-t-accent" />
+                        ) : null}
+                        {step.status === 'success' ? (
+                          <CheckCircle2 size={13} className="mt-0.5 shrink-0 text-accent" />
+                        ) : null}
+                        {step.status === 'failed' ? (
+                          <AlertCircle size={13} className="mt-0.5 shrink-0 text-warn" />
+                        ) : null}
+                        {step.status === 'skipped' ? (
+                          <AlertCircle size={13} className="mt-0.5 shrink-0 text-muted" />
+                        ) : null}
+                        <span className={step.status === 'pending' ? 'text-muted' : 'text-white'}>
+                          {step.name}
                         </span>
                       </div>
-                      <p className="text-xs text-muted leading-relaxed">{ev.excerpt}</p>
-                      <div className="mt-2 flex items-center justify-between text-[10px] text-muted/80">
-                        <a href={ev.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-white">
-                          Source: {ev.domain} <ExternalLink size={10} />
-                        </a>
-                        <span>Published: {ev.published}</span>
-                      </div>
+                      {step.detail ? (
+                        <p className="mt-0.5 break-all pl-5 font-mono text-[10px] leading-tight text-muted">
+                          {step.detail}
+                        </p>
+                      ) : null}
                     </div>
                   ))}
                 </div>
-
-                {item.challenge && (
-                  <div className="rounded-lg border border-danger/20 bg-danger/5 p-4 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-danger font-medium text-xs">
-                        <AlertTriangle size={13} />
-                        Adversarial Review Challenge
-                      </div>
-                      <span className="rounded bg-danger/15 px-1.5 py-0.5 text-[10px] font-semibold text-danger">
-                        Severity: {item.challenge.severity}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted">{item.challenge.issue}</p>
-                    <div className="text-[10px] border-t border-danger/10 pt-2 text-accent soft">
-                      <span className="font-semibold">Resolution: </span>
-                      {item.challenge.resolution}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
+              </motion.div>
+            ) : null}
           </div>
-        ) : (
-          <div className="space-y-3">
-            {passport.claims.map((c, i) => (
-              <ClaimCard key={i} claim={c} />
-            ))}
-            <div className="rounded-xl border border-border bg-surface p-6 text-center">
-              <p className="text-sm text-muted">No external web evidence fetched by standard pipeline.</p>
-              <button 
-                onClick={() => setShowDemo(true)}
-                className="mt-3 text-xs text-accent hover:underline font-medium"
-              >
-                Enable Demo Mode to view rich mock evidence layouts
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
 
-      <div className="space-y-6 lg:col-span-1">
-        <BlockchainCard attestation={passport.attestation} passportHash={passport.passportHash} publicId={passport.publicId} />
-
-        <div className="card p-6 space-y-4">
-          <div className="flex items-center gap-2">
-            <ShieldCheck size={18} className="text-accent" />
-            <h3 className="text-lg font-semibold">Integrity Check</h3>
-          </div>
-          <p className="text-xs text-muted leading-relaxed">
-            Recompute cryptographic roots of the off-chain passport and cross-reference them with the Base Sepolia attestation records.
-          </p>
-
-          <button
-            onClick={runIntegrityCheck}
-            disabled={verifying}
-            className="w-full rounded-xl bg-surface border border-border py-2.5 text-xs font-semibold transition hover:border-accent hover:text-white disabled:opacity-50"
-          >
-            {verifying ? 'Running checks…' : 'Verify Integrity'}
-          </button>
-
-          {integrityReport?.ran && (
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }} 
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-3 border-t border-border pt-4"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider">Status Report</span>
-                <span className={`text-xs font-bold ${integrityReport.valid ? 'text-accent' : 'text-warn'}`}>
-                  {integrityReport.valid ? 'PASSPORT VALID' : 'UNANCHORED'}
-                </span>
-              </div>
-
-              <div className="space-y-2">
-                {integrityReport.steps.map((step, idx) => (
-                  <div key={idx} className="text-xs">
-                    <div className="flex items-center gap-2">
-                      {step.status === 'pending' && (
-                        <div className="h-3 w-3 animate-spin rounded-full border border-muted border-t-accent" />
-                      )}
-                      {step.status === 'success' && (
-                        <CheckCircle2 size={13} className="text-accent shrink-0" />
-                      )}
-                      {step.status === 'failed' && (
-                        <AlertCircle size={13} className="text-warn shrink-0" />
-                      )}
-                      <span className={step.status === 'pending' ? 'text-muted' : 'text-white'}>
-                        {step.name}
-                      </span>
-                    </div>
-                    {step.detail && (
-                      <p className="pl-5 text-[10px] text-muted font-mono leading-tight mt-0.5 break-all">
-                        {step.detail}
-                      </p>
-                    )}
-                  </div>
+          {passport.requestIds.length > 0 || passport.modelResponses.some((m) => m.requestId) ? (
+            <div className="rounded-3xl border border-white/8 bg-card/60 p-6">
+              <h3 className="mb-3 text-sm font-semibold">Gonka audit IDs</h3>
+              <ul className="space-y-2">
+                {(passport.requestIds.length
+                  ? passport.requestIds
+                  : passport.modelResponses.map((m) => m.requestId).filter(Boolean)
+                ).map((id) => (
+                  <li
+                    key={String(id)}
+                    className="rounded-xl border border-white/5 bg-black/20 px-3 py-2 font-mono text-[11px] text-muted"
+                  >
+                    {String(id)}
+                  </li>
                 ))}
-              </div>
-            </motion.div>
-          )}
+              </ul>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

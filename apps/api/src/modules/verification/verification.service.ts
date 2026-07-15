@@ -131,7 +131,6 @@ export class VerificationService {
         ingested.normalizedContent,
         claimEntities,
         evidenceEntities,
-        ingested.imageBlock,
       );
 
       await this.saveAudit(verification.id, 'KIMI_INVESTIGATOR', panel.audits[0], panel.kimi);

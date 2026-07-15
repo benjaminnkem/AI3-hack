@@ -4,6 +4,11 @@ import { Claim, Evidence } from '../../entities';
 import { GonkaClient } from '../gonka/gonka.client';
 import { GonkaResult } from '../gonka/gonka.types';
 import {
+  alignAdversarialOutput,
+  alignInvestigatorOutput,
+  alignNarrativeOutput,
+} from './align';
+import {
   adversarialSchema,
   AdversarialOutput,
   investigatorSchema,
@@ -12,24 +17,18 @@ import {
   NarrativeOutput,
 } from './schemas';
 import { prompts } from './prompts';
+
 @Injectable()
 export class InvestigationService {
   constructor(
     private readonly gonka: GonkaClient,
     private readonly config: ConfigService,
   ) {}
+
   async investigate(
     content: string,
     claims: Claim[],
     evidence: Evidence[],
-    imageBlock?: {
-      type: 'image';
-      source: {
-        type: 'base64';
-        media_type: 'image/jpeg' | 'image/png' | 'image/webp';
-        data: string;
-      };
-    },
   ): Promise<{ kimi: InvestigatorOutput; minimax: InvestigatorOutput; audits: GonkaResult[] }> {
     const packet = JSON.stringify({
       content,
@@ -46,16 +45,22 @@ export class InvestigationService {
           relevance: tavilyRelevanceScore,
         }),
       ),
+      instructions: {
+        claimIdSource: 'claims[].id',
+        evidenceIdSource: 'evidence[].id',
+        directionEnum: ['SUPPORTS', 'OPPOSES', 'NEUTRAL'],
+        verdictEnum: ['SUPPORTED', 'UNVERIFIED', 'MISLEADING', 'CONTRADICTED'],
+      },
     });
-    const kimiContent = imageBlock
-      ? [imageBlock, { type: 'text' as const, text: packet }]
-      : [{ type: 'text' as const, text: packet }];
+
+    const contentBlocks = [{ type: 'text' as const, text: packet }];
+
     const [kimi, minimax] = await Promise.all([
       this.gonka.structured(
         {
           model: this.config.get('GONKA_KIMI_MODEL', 'moonshotai/Kimi-K2.6'),
           system: prompts.investigator,
-          content: kimiContent,
+          content: contentBlocks,
         },
         investigatorSchema,
       ),
@@ -63,13 +68,19 @@ export class InvestigationService {
         {
           model: this.config.get('GONKA_MINIMAX_MODEL', 'MiniMaxAI/MiniMax-M2.7'),
           system: prompts.investigator,
-          content: [{ type: 'text', text: packet }],
+          content: contentBlocks,
         },
         investigatorSchema,
       ),
     ]);
-    return { kimi: kimi.data, minimax: minimax.data, audits: [kimi.audit, minimax.audit] };
+
+    return {
+      kimi: alignInvestigatorOutput(kimi.data, claims, evidence),
+      minimax: alignInvestigatorOutput(minimax.data, claims, evidence),
+      audits: [kimi.audit, minimax.audit],
+    };
   }
+
   async adversarial(
     content: string,
     claims: Claim[],
@@ -82,14 +93,38 @@ export class InvestigationService {
         model: this.config.get('GONKA_KIMI_MODEL', 'moonshotai/Kimi-K2.6'),
         system: prompts.adversarial,
         content: [
-          { type: 'text', text: JSON.stringify({ content, claims, evidence, kimi, minimax }) },
+          {
+            type: 'text',
+            text: JSON.stringify({
+              content,
+              claims: claims.map(({ id, text }) => ({ id, text })),
+              evidence: evidence.map(({ id, claimId, title, url, domain, excerpt }) => ({
+                id,
+                claimId,
+                title,
+                url,
+                domain,
+                excerpt,
+              })),
+              kimi,
+              minimax,
+            }),
+          },
         ],
       },
       adversarialSchema,
     );
-    return { output: result.data, audit: result.audit };
+    return {
+      output: alignAdversarialOutput(result.data, claims),
+      audit: result.audit,
+    };
   }
-  async narrative(payload: unknown): Promise<{ output: NarrativeOutput; audit: GonkaResult }> {
+
+  async narrative(payload: {
+    immutableResult: unknown;
+    claims: Array<{ id: string; text: string } & Record<string, unknown>>;
+    challenges: unknown[];
+  }): Promise<{ output: NarrativeOutput; audit: GonkaResult }> {
     const result = await this.gonka.structured(
       {
         model: this.config.get('GONKA_MINIMAX_MODEL', 'MiniMaxAI/MiniMax-M2.7'),
@@ -98,6 +133,11 @@ export class InvestigationService {
       },
       narrativeSchema,
     );
-    return { output: result.data, audit: result.audit };
+
+    const claims = payload.claims.map((claim) => ({ id: claim.id }) as Claim);
+    return {
+      output: alignNarrativeOutput(result.data, claims),
+      audit: result.audit,
+    };
   }
 }

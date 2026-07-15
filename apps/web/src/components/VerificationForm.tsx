@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Link, FileText, Image as ImageIcon, X, Upload, ArrowRight } from 'lucide-react';
+import { Link, FileText, Image as ImageIcon, X, Upload, ArrowRight, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useRef, DragEvent, ChangeEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,22 +15,36 @@ const schema = z
     inputType: z.enum(['text', 'url', 'image']),
     input: z.string().min(1, 'Please enter a claim or select an image to verify.'),
   })
-  .refine(
-    (data) => {
-      if (data.inputType === 'url') {
-        return /^https?:\/\/\S+/.test(data.input);
+  .superRefine((data, ctx) => {
+    if (data.inputType === 'url') {
+      const value = data.input.trim();
+      const normalized = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+      try {
+        const parsed = new URL(normalized);
+        if (!['http:', 'https:'].includes(parsed.protocol)) {
+          throw new Error('invalid');
+        }
+      } catch {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Enter a valid URL (include the domain, e.g. example.com/article).',
+          path: ['input'],
+        });
       }
-      if (data.inputType === 'text') {
-        return data.input.trim().length >= 3 && data.input.trim().length <= 20000;
+      return;
+    }
+
+    if (data.inputType === 'text') {
+      const length = data.input.trim().length;
+      if (length < 3 || length > 20000) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Text must be between 3 and 20,000 characters.',
+          path: ['input'],
+        });
       }
-      return true;
-    },
-    {
-      message:
-        'Invalid input. URLs must start with http/https, text must be between 3 and 20000 characters.',
-      path: ['input'],
-    },
-  );
+    }
+  });
 
 export type VerificationFormValues = z.infer<typeof schema>;
 
@@ -39,6 +53,19 @@ const TABS: { value: FormInputType; label: string; icon: typeof FileText }[] = [
   { value: 'url', label: 'URL', icon: Link },
   { value: 'image', label: 'Image', icon: ImageIcon },
 ];
+
+function normalizeSubmitValues(values: VerificationFormValues): VerificationFormValues {
+  if (values.inputType !== 'url') {
+    return {
+      ...values,
+      input: values.inputType === 'text' ? values.input.trim() : values.input,
+    };
+  }
+
+  const trimmed = values.input.trim();
+  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  return { ...values, input: withProtocol };
+}
 
 export function VerificationForm({
   onSubmit,
@@ -56,24 +83,27 @@ export function VerificationForm({
     watch,
     setValue,
     formState: { errors },
-    trigger,
   } = useForm<VerificationFormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       inputType: defaultValues?.inputType ?? 'text',
       input: defaultValues?.input ?? '',
     },
+    mode: 'onSubmit',
   });
 
   const activeType = watch('inputType');
   const textValue = watch('input') || '';
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(
+    defaultValues?.inputType === 'image' && defaultValues.input?.startsWith('data:image')
+      ? defaultValues.input
+      : null,
+  );
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleTextChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
-    setValue('input', e.target.value);
-    trigger('input');
+    setValue('input', e.target.value, { shouldDirty: true, shouldTouch: true });
   };
 
   const processFile = (file: File) => {
@@ -90,8 +120,7 @@ export function VerificationForm({
       if (e.target?.result) {
         const base64 = e.target.result as string;
         setImagePreview(base64);
-        setValue('input', base64);
-        trigger('input');
+        setValue('input', base64, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
       }
     };
     reader.readAsDataURL(file);
@@ -124,15 +153,15 @@ export function VerificationForm({
 
   const removeImage = () => {
     setImagePreview(null);
-    setValue('input', '');
+    setValue('input', '', { shouldDirty: true, shouldTouch: true });
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
   const setTab = (type: FormInputType) => {
-    setValue('inputType', type);
-    setValue('input', '');
+    setValue('inputType', type, { shouldDirty: true, shouldTouch: true });
+    setValue('input', '', { shouldDirty: true, shouldTouch: true });
     setImagePreview(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -141,7 +170,9 @@ export function VerificationForm({
 
   return (
     <form
-      onSubmit={handleSubmit(onSubmit)}
+      onSubmit={handleSubmit((values) => {
+        onSubmit(normalizeSubmitValues(values));
+      })}
       className={cn(
         'relative overflow-hidden rounded-3xl border border-white/10 bg-card/70 p-5 shadow-[0_24px_80px_-40px_rgba(0,0,0,0.8)] backdrop-blur-xl sm:p-6',
         className,
@@ -156,10 +187,12 @@ export function VerificationForm({
             <button
               key={value}
               type="button"
+              disabled={loading}
               onClick={() => setTab(value)}
               className={cn(
                 'relative flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition',
                 active ? 'text-background' : 'text-muted hover:text-white',
+                loading && 'opacity-60',
               )}
             >
               {active && (
@@ -190,8 +223,9 @@ export function VerificationForm({
               value={textValue}
               onChange={handleTextChange}
               rows={5}
+              disabled={loading}
               placeholder="Paste a claim, paragraph, or text block to verify…"
-              className="w-full resize-none rounded-2xl border border-border bg-surface/80 p-4 pb-8 text-sm outline-none transition placeholder:text-muted/60 focus:border-accent/60 focus:ring-1 focus:ring-accent/20"
+              className="w-full resize-none rounded-2xl border border-border bg-surface/80 p-4 pb-8 text-sm outline-none transition placeholder:text-muted/60 focus:border-accent/60 focus:ring-1 focus:ring-accent/20 disabled:opacity-60"
             />
             <div className="absolute bottom-3 right-3 text-xs text-muted">
               {textValue.length.toLocaleString()} / 20,000
@@ -208,14 +242,17 @@ export function VerificationForm({
             transition={{ duration: 0.22 }}
           >
             <input
-              type="text"
+              type="url"
               value={textValue}
+              disabled={loading}
               onChange={(e) => {
-                setValue('input', e.target.value);
-                trigger('input');
+                setValue('input', e.target.value, {
+                  shouldDirty: true,
+                  shouldTouch: true,
+                });
               }}
               placeholder="https://example.com/article-to-fact-check"
-              className="w-full rounded-2xl border border-border bg-surface/80 p-4 text-sm outline-none transition placeholder:text-muted/60 focus:border-accent/60 focus:ring-1 focus:ring-accent/20"
+              className="w-full rounded-2xl border border-border bg-surface/80 p-4 text-sm outline-none transition placeholder:text-muted/60 focus:border-accent/60 focus:ring-1 focus:ring-accent/20 disabled:opacity-60"
             />
           </motion.div>
         )}
@@ -234,6 +271,7 @@ export function VerificationForm({
               onChange={handleFileChange}
               accept="image/png, image/jpeg, image/webp"
               className="hidden"
+              disabled={loading}
             />
             {!imagePreview ? (
               <div
@@ -241,10 +279,11 @@ export function VerificationForm({
                 onDragOver={handleDrag}
                 onDragLeave={handleDrag}
                 onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => !loading && fileInputRef.current?.click()}
                 className={cn(
                   'flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-surface/50 px-4 py-12 text-center transition hover:border-accent/40',
                   dragActive && 'border-accent bg-accent/5',
+                  loading && 'pointer-events-none opacity-60',
                 )}
               >
                 <Upload size={32} className="mb-3 text-muted" />
@@ -261,15 +300,17 @@ export function VerificationForm({
                 <div className="flex gap-3">
                   <button
                     type="button"
+                    disabled={loading}
                     onClick={() => fileInputRef.current?.click()}
-                    className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium transition hover:border-accent"
+                    className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium transition hover:border-accent disabled:opacity-50"
                   >
                     Replace Image
                   </button>
                   <button
                     type="button"
+                    disabled={loading}
                     onClick={removeImage}
-                    className="flex items-center gap-1 rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-medium text-danger transition hover:bg-danger/5"
+                    className="flex items-center gap-1 rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-medium text-danger transition hover:bg-danger/5 disabled:opacity-50"
                   >
                     <X size={12} /> Remove
                   </button>
@@ -280,19 +321,30 @@ export function VerificationForm({
         )}
       </AnimatePresence>
 
-      {errors.input && <p className="mt-2 text-sm text-danger">{errors.input.message}</p>}
+      {errors.input && (
+        <p className="mt-2 text-sm text-danger" role="alert">
+          {errors.input.message}
+        </p>
+      )}
 
       <button
         type="submit"
-        disabled={loading || !textValue}
+        disabled={loading || !textValue.trim()}
         className="group mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-accent py-3.5 text-sm font-semibold text-background shadow-glow transition hover:opacity-90 disabled:opacity-50"
       >
-        {loading ? 'Verifying…' : 'Verify claim'}
-        {!loading && (
-          <ArrowRight
-            size={16}
-            className="transition-transform group-hover:translate-x-0.5"
-          />
+        {loading ? (
+          <>
+            <Loader2 size={16} className="animate-spin" />
+            Starting verification…
+          </>
+        ) : (
+          <>
+            Verify claim
+            <ArrowRight
+              size={16}
+              className="transition-transform group-hover:translate-x-0.5"
+            />
+          </>
         )}
       </button>
     </form>

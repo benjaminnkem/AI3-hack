@@ -1,9 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowRight,
@@ -17,11 +15,11 @@ import {
   Sparkles,
   Type,
 } from 'lucide-react';
-import { verify } from '@/lib/api';
 import { VerificationForm, VerificationFormValues } from '@/components/VerificationForm';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { HeroBackdrop } from '@/components/landing/HeroBackdrop';
-import { Reveal, Stagger, StaggerItem, easeOutExpo, fadeUp } from '@/components/landing/Motion';
+import { Reveal, Stagger, StaggerItem, fadeUp } from '@/components/landing/Motion';
+import { useVerification } from '@/hooks/useVerification';
 import { cn } from '@/lib/utils';
 
 const PIPELINE = [
@@ -82,24 +80,13 @@ const INPUT_TYPES = [
 ];
 
 export default function VerifyPage() {
-  const router = useRouter();
   const [formSeed, setFormSeed] = useState(0);
   const [defaults, setDefaults] = useState<Partial<VerificationFormValues>>({
     inputType: 'text',
     input: '',
   });
   const [activeExample, setActiveExample] = useState<string | null>(null);
-
-  const mutation = useMutation({
-    mutationFn: verify,
-    onSuccess: (data) => {
-      router.push(`/passport/${data.publicId}`);
-    },
-  });
-
-  const handleSubmit = (values: VerificationFormValues) => {
-    mutation.mutate({ inputType: values.inputType, input: values.input });
-  };
+  const { submit, isVerifying, isError, error } = useVerification();
 
   const applyExample = (example: (typeof EXAMPLES)[number]) => {
     setActiveExample(example.label);
@@ -156,155 +143,135 @@ export default function VerifyPage() {
           </motion.div>
         </motion.div>
 
-        <div className="grid items-start gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
-          <div className="space-y-5">
-            <AnimatePresence mode="wait">
-              {mutation.isPending ? (
-                <motion.div
-                  key="loading"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.35, ease: easeOutExpo }}
-                >
-                  <LoadingScreen />
-                  <p className="mt-4 text-center text-xs text-muted">
-                    This can take a minute while models and evidence sources respond.
-                  </p>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="form"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.35, ease: easeOutExpo }}
-                  className="space-y-4"
-                >
-                  <VerificationForm
-                    key={formSeed}
-                    onSubmit={handleSubmit}
-                    loading={mutation.isPending}
-                    defaultValues={defaults}
-                  />
-
-                  <div>
-                    <p className="mb-2.5 text-xs font-medium uppercase tracking-[0.14em] text-muted">
-                      Try an example
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {EXAMPLES.map((example) => (
-                        <button
-                          key={example.label}
-                          type="button"
-                          onClick={() => applyExample(example)}
-                          className={cn(
-                            'rounded-full border px-3.5 py-2 text-xs font-medium transition',
-                            activeExample === example.label
-                              ? 'border-accent/40 bg-accent/10 text-accent'
-                              : 'border-white/10 bg-white/[0.03] text-muted hover:border-white/20 hover:text-white',
-                          )}
-                        >
-                          <span className="mr-1.5 text-[10px] uppercase tracking-wide opacity-70">
-                            {example.hint}
-                          </span>
-                          {example.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <AnimatePresence>
-              {mutation.isError && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 8 }}
-                  className="rounded-2xl border border-danger/40 bg-danger/5 p-4 text-sm text-danger"
-                >
-                  <p className="font-medium">Verification failed</p>
-                  <p className="mt-1 text-danger/90">
-                    {(mutation.error as Error)?.message ||
-                      'Check that the API and Gonka credentials are configured.'}
-                  </p>
-                </motion.div>
-              )}
-            </AnimatePresence>
+        {isVerifying ? (
+          <div id="verification-loading" className="mx-auto max-w-4xl scroll-mt-28">
+            <LoadingScreen />
           </div>
+        ) : (
+          <div className="grid items-start gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">
+            <div className="space-y-5">
+              <VerificationForm
+                key={formSeed}
+                onSubmit={submit}
+                loading={isVerifying}
+                defaultValues={defaults}
+              />
 
-          <div className="space-y-5">
-            <Reveal>
-              <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-card/60 p-6 backdrop-blur-xl">
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent" />
-                <div className="mb-5 flex items-center gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent">
-                    <Sparkles size={16} />
-                  </span>
-                  <div>
-                    <p className="text-sm font-semibold">What you get back</p>
-                    <p className="text-xs text-muted">Evidence Passport contents</p>
-                  </div>
-                </div>
-
-                <ul className="space-y-3">
-                  {[
-                    'Atomic claims with importance weights',
-                    'Supporting and opposing evidence links',
-                    'Kimi and MiniMax scores side by side',
-                    'Deterministic 0-100 Truth Score and verdict',
-                    'Gonka response IDs for auditability',
-                    'On-chain hash attestation on Sepolia',
-                  ].map((item) => (
-                    <li key={item} className="flex items-start gap-2.5 text-sm text-muted">
-                      <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-accent" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </Reveal>
-
-            <Stagger className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-              {PIPELINE.map(({ icon: Icon, title, body }, i) => (
-                <StaggerItem key={title}>
-                  <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 transition hover:border-accent/20">
-                    <div className="mb-3 flex items-center gap-3">
-                      <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/8 bg-card text-accent">
-                        <Icon size={15} />
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-[11px] text-accent/80">
-                          {String(i + 1).padStart(2, '0')}
-                        </span>
-                        <p className="text-sm font-semibold text-white">{title}</p>
-                      </div>
-                    </div>
-                    <p className="text-xs leading-relaxed text-muted">{body}</p>
-                  </div>
-                </StaggerItem>
-              ))}
-            </Stagger>
-
-            <Reveal delay={0.1}>
-              <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">
-                <p className="text-xs leading-relaxed text-muted">
-                  Mesh is decision-support infrastructure, not a final authority. Results are
-                  transparent, multi-model, and independently auditable.
+              <div>
+                <p className="mb-2.5 text-xs font-medium uppercase tracking-[0.14em] text-muted">
+                  Try an example
                 </p>
-                <Link
-                  href="/about"
-                  className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-accent transition hover:underline"
-                >
-                  How Mesh works
-                  <ArrowRight size={12} />
-                </Link>
+                <div className="flex flex-wrap gap-2">
+                  {EXAMPLES.map((example) => (
+                    <button
+                      key={example.label}
+                      type="button"
+                      onClick={() => applyExample(example)}
+                      className={cn(
+                        'rounded-full border px-3.5 py-2 text-xs font-medium transition',
+                        activeExample === example.label
+                          ? 'border-accent/40 bg-accent/10 text-accent'
+                          : 'border-white/10 bg-white/[0.03] text-muted hover:border-white/20 hover:text-white',
+                      )}
+                    >
+                      <span className="mr-1.5 text-[10px] uppercase tracking-wide opacity-70">
+                        {example.hint}
+                      </span>
+                      {example.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </Reveal>
+
+              <AnimatePresence>
+                {isError && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    className="rounded-2xl border border-danger/40 bg-danger/5 p-4 text-sm text-danger"
+                  >
+                    <p className="font-medium">Verification failed</p>
+                    <p className="mt-1 text-danger/90">
+                      {(error as Error)?.message ||
+                        'Check that the API and Gonka credentials are configured.'}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <div className="space-y-5">
+              <Reveal>
+                <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-card/60 p-6 backdrop-blur-xl">
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent" />
+                  <div className="mb-5 flex items-center gap-2">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent">
+                      <Sparkles size={16} />
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold">What you get back</p>
+                      <p className="text-xs text-muted">Evidence Passport contents</p>
+                    </div>
+                  </div>
+
+                  <ul className="space-y-3">
+                    {[
+                      'Atomic claims with importance weights',
+                      'Supporting and opposing evidence links',
+                      'Kimi and MiniMax scores side by side',
+                      'Deterministic 0-100 Truth Score and verdict',
+                      'Gonka response IDs for auditability',
+                      'On-chain hash attestation on Sepolia',
+                    ].map((item) => (
+                      <li key={item} className="flex items-start gap-2.5 text-sm text-muted">
+                        <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-accent" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </Reveal>
+
+              <Stagger className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                {PIPELINE.map(({ icon: Icon, title, body }, i) => (
+                  <StaggerItem key={title}>
+                    <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 transition hover:border-accent/20">
+                      <div className="mb-3 flex items-center gap-3">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/8 bg-card text-accent">
+                          <Icon size={15} />
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-[11px] text-accent/80">
+                            {String(i + 1).padStart(2, '0')}
+                          </span>
+                          <p className="text-sm font-semibold text-white">{title}</p>
+                        </div>
+                      </div>
+                      <p className="text-xs leading-relaxed text-muted">{body}</p>
+                    </div>
+                  </StaggerItem>
+                ))}
+              </Stagger>
+
+              <Reveal delay={0.1}>
+                <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4">
+                  <p className="text-xs leading-relaxed text-muted">
+                    Mesh is decision-support infrastructure, not a final authority. Results are
+                    transparent, multi-model, and independently auditable.
+                  </p>
+                  <Link
+                    href="/about"
+                    className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-accent transition hover:underline"
+                  >
+                    How Mesh works
+                    <ArrowRight size={12} />
+                  </Link>
+                </div>
+              </Reveal>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
