@@ -6,11 +6,12 @@
 
 Mesh was built for **AI³ Growth Hackathon: Ship with AI**, **Track 3: Gonka: AI for Society**, sponsored by **Gonka**.
 
-Mesh transforms URLs, social posts, text claims, screenshots, and images into portable Evidence Passports. The implemented pipeline combines English OCR with Tesseract.js, live evidence retrieval with Tavily, independent analysis through Gonka Router, visible model disagreement, a deterministic 0–100 Truth Score, cryptographic integrity values, and compact attestations on Ethereum Sepolia.
+Mesh transforms URLs, social posts, text claims, screenshots, and images into portable Evidence Passports. The implemented pipeline uses Tesseract.js for English OCR, Tavily Extract to read submitted public URLs, Tavily Search to retrieve current sources that investigators classify as supporting, opposing, or contextual evidence, Gonka Router for every LLM inference and verification-reasoning stage, deterministic application code for the 0–100 Truth Score, and Ethereum Sepolia for compact tamper-evident attestations.
 
 [![AI³ Growth Hackathon](https://img.shields.io/badge/AI%C2%B3_Growth_Hackathon-Ship_with_AI-22e59a?style=flat-square)](https://ai3-hack.oluwadunsin.dev)
 ![Track 3](https://img.shields.io/badge/Track_3-Gonka%3A_AI_for_Society-22e59a?style=flat-square)
 [![Gonka Router](https://img.shields.io/badge/AI-Gonka_Router-22e59a?style=flat-square)](https://gonkarouter.io/)
+[![Tavily](https://img.shields.io/badge/Web_Data-Tavily-22e59a?style=flat-square)](https://tavily.com/)
 ![Multi-model consensus](https://img.shields.io/badge/verification-multi--model_consensus-22e59a?style=flat-square)
 ![Tesseract.js OCR](https://img.shields.io/badge/OCR-Tesseract.js-22e59a?style=flat-square)
 ![Solidity](https://img.shields.io/badge/Solidity-0.8.24-363636?style=flat-square)
@@ -39,6 +40,7 @@ Mesh transforms URLs, social posts, text claims, screenshots, and images into po
 - [Features](#features)
 - [Architecture](#architecture)
 - [OCR and Image Verification](#ocr-and-image-verification)
+- [Tavily URL Extraction and Evidence Retrieval](#tavily-url-extraction-and-evidence-retrieval)
 - [Gonka Router and Multi-Model Analysis](#gonka-router-and-multi-model-analysis)
 - [Truth Score and Consensus](#truth-score-and-consensus)
 - [Evidence Passports](#evidence-passports)
@@ -86,6 +88,8 @@ The product serves ordinary users checking a forwarded screenshot, journalists a
 
 Mesh is more than a generic fact-checking page because its result is designed to travel. A passport can be shared through its public page, rendered as a compact badge, retrieved through the API, rechecked against stored hashes, and compared with an Ethereum Sepolia attestation. The chain makes later modification detectable; it does not decide whether a claim is true.
 
+For URL inputs, Mesh does not evaluate a title or URL string alone. Tavily Extract retrieves the readable page content before atomic claims are generated, and Tavily Search then gathers independent evidence about those claims.
+
 ## The Problem
 
 AI-assisted misinformation can move rapidly between X, Telegram, WhatsApp, Discord, screenshots, blogs, and news sites. Platform-specific fact-checks do not travel with the claim, so each new audience may restart the same investigation. Screenshots can hide the source, and text embedded in an image is slow to inspect or search manually.
@@ -101,11 +105,15 @@ The current backend executes this flow synchronously and can stream real stage u
 ```text
 User submits text, a public URL/social-post URL, or a PNG/JPEG/WebP image
   -> the input is validated, normalized, and hashed
-  -> URLs pass an SSRF guard and are extracted with Tavily (search is the fallback)
+  -> public URLs pass HTTP(S), DNS, and SSRF safety checks
+  -> Tavily Extract reads the submitted page content
+  -> Tavily Search is used as the URL-ingestion fallback if extraction fails or is empty
   -> images are stored and Tesseract.js extracts English text
   -> Kimi normalizes the OCR transcript as text through Gonka Router
-  -> MiniMax extracts 0–5 atomic factual claims through Gonka Router
-  -> Tavily retrieves current evidence, including a contradiction-oriented query
+  -> normalized text enters MiniMax claim extraction through Gonka Router
+  -> Tavily Search runs claim-specific queries for current evidence
+  -> a contradiction-oriented query is also considered within the configured query cap
+  -> investigators classify evidence as supporting, opposing, or neutral
   -> Kimi and MiniMax investigate the same claims and evidence independently in parallel
   -> Kimi performs an adversarial review of both assessments
   -> application code computes per-claim and overall Truth Scores
@@ -142,21 +150,21 @@ Two independent Gonka-routed investigators are preferable to trusting one model 
 
 Mesh was built for **AI³ Growth Hackathon: Ship with AI**, **Track 3: Gonka: AI for Society**, sponsored by **Gonka**. The track asks builders to use decentralized inference to create inclusive and trustworthy public-interest AI systems that address misinformation, manipulated media, centralized platform bias, and concentrated AI infrastructure.
 
-| Track requirement                     | Mesh implementation                                                                                                                                                                      |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| All AI inference through Gonka Router | A single NestJS `GonkaClient` wraps the official Anthropic SDK with `https://api.gonkarouter.io`; every inference stage calls it.                                                        |
-| Multi-model cross-consensus           | `moonshotai/Kimi-K2.6` and `MiniMaxAI/MiniMax-M2.7` independently assess the same claims and evidence. Kimi also challenges the leading result; consensus scoring is deterministic code. |
-| URL verification                      | Public HTTP(S) URLs pass SSRF checks, Tavily Extract, and a Tavily Search fallback before claim extraction.                                                                              |
-| Text and social-post verification     | Text up to the backend's 10,000-character limit is normalized directly. Social posts are supported as public URLs when Tavily can access their content.                                  |
-| Image and screenshot verification     | PNG, JPEG, and WebP files up to 5 MiB are processed with English Tesseract.js OCR. Gonka currently receives the OCR transcript, not a native image block.                                |
-| Real-time evidence                    | Tavily Search retrieves up to four deduplicated domains per claim by default; date-sensitive claims use the news topic.                                                                  |
-| 0–100 Truth Score                     | The backend combines evidence balance, source coverage, both model probabilities, disagreement, confidence, source quality, and unresolved adversarial penalties using a fixed formula.  |
-| Traceable reasoning                   | Passports expose atomic claims, evidence direction and metadata, per-model summaries, challenges, disagreement, verdicts, and scores.                                                    |
-| Gonka Request IDs                     | Response body IDs and optional header IDs are persisted in `model_responses`; public model cards show an audit ID and `requestIdsHash` commits all stored stage IDs.                     |
-| Transparent UI                        | The [live Mesh application](https://ai3-hack.oluwadunsin.dev) renders public passports, evidence, model comparisons, integrity values, and receipts.                                     |
-| Public social value                   | The web app, REST API, public passport pages, badges, and Telegram bot serve users, journalists, communities, developers, and agents.                                                    |
-| On-chain attestation                  | `MeshAttestationRegistry` stores compact hashes, score, version, timestamp, and attestor on Ethereum Sepolia.                                                                            |
-| Telegram accessibility                | The live [Mesh Telegram bot](https://t.me/mesh_passport_bot) accepts text, URLs, photos, and supported image documents.                                                                  |
+| Track requirement                     | Mesh implementation                                                                                                                                                                            |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| All AI inference through Gonka Router | A single NestJS `GonkaClient` wraps the official Anthropic SDK with `https://api.gonkarouter.io`; every inference stage calls it.                                                              |
+| Multi-model cross-consensus           | `moonshotai/Kimi-K2.6` and `MiniMaxAI/MiniMax-M2.7` independently assess the same claims and evidence. Kimi also challenges the leading result; consensus scoring is deterministic code.       |
+| URL verification                      | Mesh validates HTTP(S), resolves DNS, blocks private/unsafe targets, reads content with Tavily Extract, and falls back to Tavily Search on failed or empty extraction before claim extraction. |
+| Text and social-post verification     | Text up to the backend's 10,000-character limit is normalized directly. Social posts are supported as public URLs when Tavily can access their content.                                        |
+| Image and screenshot verification     | PNG, JPEG, and WebP files up to 5 MiB are processed with English Tesseract.js OCR. Gonka currently receives the OCR transcript, not a native image block.                                      |
+| Real-time evidence                    | Tavily Search runs claim-specific and contradiction-oriented query candidates; returns titles, URLs, domains, excerpts, dates, and relevance; and deduplicates canonical URLs/domains.         |
+| 0–100 Truth Score                     | The backend combines evidence balance, source coverage, both model probabilities, disagreement, confidence, source quality, and unresolved adversarial penalties using a fixed formula.        |
+| Traceable reasoning                   | Passports expose atomic claims, evidence direction and metadata, per-model summaries, challenges, disagreement, verdicts, and scores.                                                          |
+| Gonka Request IDs                     | Response body IDs and optional header IDs are persisted in `model_responses`; public model cards show an audit ID and `requestIdsHash` commits all stored stage IDs.                           |
+| Transparent UI                        | The [live Mesh application](https://ai3-hack.oluwadunsin.dev) renders public passports, evidence, model comparisons, integrity values, and receipts.                                           |
+| Public social value                   | The web app, REST API, public passport pages, badges, and Telegram bot serve users, journalists, communities, developers, and agents.                                                          |
+| On-chain attestation                  | `MeshAttestationRegistry` stores compact hashes, score, version, timestamp, and attestor on Ethereum Sepolia.                                                                                  |
+| Telegram accessibility                | The live [Mesh Telegram bot](https://t.me/mesh_passport_bot) accepts text, URLs, photos, and supported image documents.                                                                        |
 
 ## Features
 
@@ -172,10 +180,13 @@ Mesh was built for **AI³ Growth Hackathon: Ship with AI**, **Track 3: Gonka: AI
 - English text extraction with Tesseract.js
 - Neutral OCR-transcript normalization through Kimi
 - Zero-to-five atomic factual claims through MiniMax
-- Tavily URL extraction and current search results
-- Contradiction-oriented search queries
-- Canonical URL/domain deduplication
-- Publication/retrieval dates, excerpts, relevance, source-quality, and direction
+- Public URL content extraction with Tavily Extract
+- Tavily Search fallback when extraction fails or returns no readable content
+- Live, claim-specific Tavily Search queries
+- A contradiction-oriented query candidate, subject to the configured per-claim query cap
+- Supporting, opposing, and neutral classification after investigator assessment
+- Canonical URL and domain deduplication
+- Source titles, URLs, domains, excerpts, publication/retrieval dates, relevance, and model-derived quality values
 
 ### Decentralized AI
 
@@ -211,15 +222,19 @@ flowchart TD
     T["Telegram Bot"] --> API
 
     API --> V["Validation, normalization, input hash"]
-    V -->|"public URL"| U["SSRF guard + Tavily Extract/Search"]
+    V -->|"public URL"| SAFE["HTTP(S), DNS + SSRF guard"]
+    SAFE --> EXTRACT["Tavily Extract"]
+    EXTRACT --> CONTENT["Normalized page content"]
+    EXTRACT -->|"failed or empty"| SEARCH_FALLBACK["Tavily Search fallback"]
+    SEARCH_FALLBACK --> CONTENT
     V -->|"image"| S["Local or Cloudinary storage"]
     V -->|"image"| O["Tesseract.js OCR (English)"]
     O --> VN["Kimi transcript normalization via Gonka"]
 
-    U --> C["MiniMax atomic claim extraction via Gonka"]
+    CONTENT --> C["MiniMax atomic claim extraction via Gonka"]
     VN --> C
     V -->|"text"| C
-    C --> E["Tavily live evidence retrieval"]
+    C --> E["Tavily Search for live claim evidence"]
     E --> KI["Kimi independent investigator via Gonka"]
     E --> MI["MiniMax independent investigator via Gonka"]
     KI --> A["Kimi adversarial review via Gonka"]
@@ -276,7 +291,42 @@ OCR extracts written content. Tavily finds current sources. Gonka-routed models 
 
 Tesseract worker/language resources are managed by the Node library at runtime. The repository contains `apps/api/eng.traineddata`, but the current `Tesseract.recognize` call does not configure an explicit `langPath`; ensure the runtime can resolve/download language data and has enough memory for a full image worker.
 
+## Tavily URL Extraction and Evidence Retrieval
+
+Mesh uses `@tavily/core` for two separate retrieval jobs. Tavily is not an AI inference or verdict provider.
+
+### Tavily Extract: URL ingestion
+
+For a submitted URL, Mesh first normalizes it, permits only HTTP(S), removes credentials, fragments, and known tracking parameters, resolves its hostname, and rejects loopback, local, metadata, private, link-local, carrier-grade NAT, multicast, and other unsafe address ranges. Only then does Tavily Extract receive the URL.
+
+Tavily Extract requests readable Markdown content using the configured `TAVILY_EXTRACT_DEPTH` (`basic` by default). Mesh trims the first result and caps normalized page content at 12,000 characters before Gonka-routed claim extraction. This lets Mesh identify claims inside the page instead of reasoning over the URL string or title alone.
+
+If extraction throws or returns empty content, the ingestion service calls Tavily Search with the normalized URL as the query. It combines the fallback results' titles and excerpts into normalized input. The current implementation does not measure extraction quality beyond the presence of non-empty content, so it does not automatically fall back merely because an extraction is short or incomplete.
+
+Extraction can fail or be incomplete when a site requires authentication, enforces a paywall or anti-bot controls, or renders important content only in unsupported client-side code. Social platforms frequently impose these restrictions.
+
+### Tavily Search: evidence retrieval
+
+After MiniMax extracts atomic claims and search queries through Gonka Router, Tavily Search retrieves candidate evidence for each claim. The implementation:
+
+- uses `TAVILY_SEARCH_DEPTH` (`fast` by default) and up to `TAVILY_MAX_RESULTS_PER_CLAIM` results (`4` by default, configurable from 1–5);
+- uses Tavily's `news` topic for date-sensitive claims and `general` otherwise;
+- runs up to `TAVILY_MAX_QUERIES_PER_CLAIM` queries (`2` by default) with bounded concurrency;
+- appends a `${claim} false OR misleading fact check` query candidate before applying that cap;
+- requests no Tavily-generated answer and no raw page content;
+- normalizes URLs and deduplicates by canonical URL and domain, both within a search response and across searches for the same claim;
+- retains titles, URLs, domains, excerpts, optional publication dates, retrieval dates, and relevance values; and
+- lets Kimi and MiniMax assess source quality and direction. Evidence is marked supporting or opposing only when both investigators agree; otherwise it remains neutral.
+
+Because the contradiction-oriented candidate is appended after model-generated queries, it can be excluded when those earlier queries already fill the configured cap. The README therefore describes it as a candidate rather than guaranteeing that it runs for every claim.
+
+> Tavily retrieves and extracts web information. It does not produce Mesh’s model verdicts or Truth Score. All LLM-based claim extraction, investigation, adversarial analysis, and narrative generation run through Gonka Router, while deterministic application code computes the final score.
+
+Retrieved material is evidence input, not guaranteed fact. Search coverage depends on indexed and accessible sources; content can be incomplete, stale, duplicated, misleading, or contain prompt-injection text. Mesh preserves source metadata and model disagreement so reviewers can inspect those limits.
+
 ## Gonka Router and Multi-Model Analysis
+
+Tavily handles page extraction and live web retrieval; Gonka Router handles every LLM inference stage.
 
 The implementation uses the official `@anthropic-ai/sdk` with:
 
@@ -405,7 +455,7 @@ Local mode uses long polling. Deployed mode can use a webhook-backed Node HTTP s
 - NestJS 10, TypeScript, Swagger/OpenAPI, class-validator, Helmet, and throttling
 - PostgreSQL with TypeORM entities and migrations; synchronization only under `NODE_ENV=test`
 - `@anthropic-ai/sdk` pointed to Gonka Router
-- `@tavily/core` for extraction/search only
+- `@tavily/core` for public URL extraction and live evidence search only
 - Tesseract.js 7 for English server-side OCR
 - Local filesystem or Cloudinary image storage
 - Ethers 6 for registry writes/readback
@@ -425,6 +475,8 @@ Local mode uses long polling. Deployed mode can use a webhook-backed Node HTTP s
 - Direct REST client for text, URL, and multipart image verification
 
 No shared source package is currently present. Root Turbo tasks coordinate the four apps, while each app owns its types/configuration. There is no checked-in hosting-provider manifest, CI workflow, Redis dependency, or container configuration.
+
+External services have strict boundaries: Tavily extracts public pages and searches for evidence, Gonka Router performs LLM inference, Cloudinary optionally stores images, PostgreSQL persists passports, and Ethereum Sepolia anchors compact integrity values.
 
 ## Repository Structure
 
@@ -796,15 +848,17 @@ No web unit/component/Playwright suite or Telegram automated test suite is curre
 ## Judge Demo Flow
 
 1. Open the [live application](https://ai3-hack.oluwadunsin.dev) and select **Verify a claim**.
-2. Submit a stable example such as “The European Union passed the AI Act in 2024” or “mRNA COVID-19 vaccines were authorized for emergency use in the United States in December 2020.”
-3. Show the real streamed stages: ingestion, claims, evidence, investigation, adversarial review, narrative, passport, and attestation.
-4. Open the atomic claims and supporting/opposing/neutral evidence.
-5. Compare Kimi and MiniMax and highlight any visible disagreement.
-6. Explain the deterministic Truth Score and its evidence/coverage/adversarial inputs.
-7. Open the public passport, Gonka audit IDs, hashes, and integrity panel.
-8. Open the Ethereum Sepolia receipt and run the integrity check.
-9. Upload a screenshot containing a short English claim; explain that Tesseract.js extracts its text and that the current UI shows the result as the passport input preview rather than a separate editable OCR step.
-10. Send a claim or image to [@mesh_passport_bot](https://t.me/mesh_passport_bot) and open the returned passport.
+2. Submit an accessible public article URL.
+3. Explain that Mesh permits only HTTP(S), resolves DNS, and blocks private or unsafe network targets before retrieval.
+4. Show that Tavily Extract reads the article content and that atomic claims are generated from the normalized page text—not the title alone.
+5. Show Tavily Search retrieving independent candidate evidence for those claims, including the contradiction-oriented query when it falls within the configured query cap.
+6. Open the claims and supporting/opposing/neutral evidence, including source titles, domains, excerpts, dates, relevance, and model-derived quality.
+7. Compare Kimi and MiniMax and highlight any visible disagreement.
+8. Explain the deterministic Truth Score and its evidence/coverage/adversarial inputs.
+9. Open the public passport, Gonka audit IDs, hashes, and integrity panel.
+10. Open the Ethereum Sepolia receipt and run the integrity check.
+11. Upload a screenshot containing a short English claim; explain that Tesseract.js extracts its text and that the current UI shows the result as the passport input preview rather than a separate editable OCR step.
+12. Send a claim or image to [@mesh_passport_bot](https://t.me/mesh_passport_bot) and open the returned passport.
 
 Because evidence and external services are live, demo results and timing can change. Warm hosted services before judging and keep a text example available if a social platform blocks URL extraction.
 
@@ -874,8 +928,10 @@ Use a dedicated Ethereum-Sepolia-only wallet that never holds mainnet assets. Ne
 
 - AI assessments can be wrong, overconfident, or sensitive to incomplete evidence.
 - A high score is not absolute proof or professional medical, legal, financial, or electoral advice.
-- Search results can omit sources; pages and publication context can change after verification.
-- Public/social URLs only work when DNS is public and Tavily can access/extract them.
+- Tavily Extract may not read pages behind authentication, paywalls, anti-bot systems, or unsupported client-side rendering; social platforms commonly block extraction.
+- Successful extraction means readable content was returned, not that the page is accurate, complete, or current.
+- Tavily Search coverage depends on indexed and accessible sources. Results can be incomplete, duplicated, outdated, or misleading even after Mesh deduplicates retained evidence.
+- Tavily retrieval is evidence input, not an authority on truth; pages and publication context can change after verification.
 - OCR is English-only and may misread blurred, low-resolution, handwritten, rotated, or stylized text.
 - No image preprocessing, persisted OCR confidence, user OCR confirmation, image forensics, or deepfake detector is implemented.
 - Native image content is not currently sent through Gonka; Kimi receives the Tesseract transcript.
@@ -914,4 +970,4 @@ No license file is currently committed. The repository is provided for AI³ Grow
 
 ## Acknowledgements
 
-Mesh is built with support from the AI³ Growth Hackathon and Gonka. It uses Gonka Router, Kimi-K2.6, MiniMax-M2.7, Tesseract.js, Tavily, Ethereum Sepolia, Telegram/grammY, Next.js, NestJS, PostgreSQL, TypeORM, Hardhat, OpenZeppelin, and the wider TypeScript open-source ecosystem.
+Mesh is built with support from the AI³ Growth Hackathon and Gonka. It uses Gonka Router, Kimi-K2.6, MiniMax-M2.7, Tesseract.js, Tavily for public URL extraction and live evidence retrieval, Ethereum Sepolia, Telegram/grammY, Next.js, NestJS, PostgreSQL, TypeORM, Hardhat, OpenZeppelin, and the wider TypeScript open-source ecosystem.
