@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { Bot, Context } from 'grammy';
+import { Bot, Context, InlineKeyboard } from 'grammy';
 import type { Update } from 'grammy/types';
 import { env, passportUrl, webhookUrl } from './config';
 import { MeshPassportResult, verifyImage, verifyText, verifyUrl } from './mesh-api';
@@ -22,7 +22,7 @@ function rateLimitMessage(chatId: number): string | null {
   const waitMs = env.rateLimitSeconds * 1000 - (now - previous);
   if (waitMs > 0) {
     const seconds = Math.ceil(waitMs / 1000);
-    return `Please wait ${seconds}s before another verification. Gonka multi-model review is expensive.`;
+    return `⏳ <b>Cooldown active</b>\n\nPlease wait <b>${seconds}s</b> before another verification.\nMulti-model AI review is resource-intensive.`;
   }
   return null;
 }
@@ -31,64 +31,151 @@ function markRequested(chatId: number) {
   lastRequestAt.set(chatId, Date.now());
 }
 
+function scoreBar(score: number): string {
+  const filled = Math.round(score / 10);
+  const empty = 10 - filled;
+  return '▓'.repeat(filled) + '░'.repeat(empty);
+}
+
+function verdictEmoji(verdict: string): string {
+  const v = verdict.toUpperCase();
+  if (v.includes('TRUE') || v.includes('VERIFIED') || v.includes('CONFIRM')) return '✅';
+  if (v.includes('FALSE') || v.includes('DEBUNK') || v.includes('REFUT')) return '❌';
+  if (v.includes('PARTIAL') || v.includes('MIXED') || v.includes('MISLEAD')) return '⚠️';
+  if (v.includes('UNVERIF') || v.includes('INCONC') || v.includes('UNKNOWN')) return '❔';
+  return '🔍';
+}
+
+function scoreEmoji(score: number): string {
+  if (score >= 80) return '🟢';
+  if (score >= 60) return '🟡';
+  if (score >= 40) return '🟠';
+  return '🔴';
+}
+
 function helpText(): string {
   return [
-    'Mesh turns digital claims into portable Evidence Passports.',
+    '🛡️ <b>Mesh Evidence Passports</b>',
     '',
-    'Send me one of:',
-    '• a text claim',
-    '• a URL (https://...)',
-    '• a screenshot / image',
+    'Turn any digital claim into a verifiable, portable Evidence Passport — powered by multi-model AI verification.',
     '',
-    'I call the Mesh API, run multi-model verification, and reply with a Truth Score + public passport link.',
+    '━━━━━━━━━━━━━━━━━━',
     '',
-    'Commands:',
-    '/start - intro',
-    '/help - usage',
-    '/verify - short how-to',
+    '📝 <b>What can I verify?</b>',
+    '',
+    '  📄 <b>Text claim</b> — paste any statement',
+    '  🔗 <b>URL</b> — send a link to an article or post',
+    '  📸 <b>Image</b> — upload a screenshot or photo',
+    '',
+    '━━━━━━━━━━━━━━━━━━',
+    '',
+    '⚡ <b>Commands</b>',
+    '',
+    '  /start — Welcome \u0026 intro',
+    '  /help — This guide',
+    '  /verify — Quick how-to',
+    '',
+    '━━━━━━━━━━━━━━━━━━',
+    '',
+    '💡 <i>Just send your claim directly — no command needed!</i>',
+  ].join('\n');
+}
+
+function verifyHowTo(): string {
+  return [
+    '⚡ <b>Quick Verification Guide</b>',
+    '',
+    '<b>Step 1:</b> Send me a claim',
+    '  → Text, URL, or image',
+    '',
+    '<b>Step 2:</b> Wait for AI review',
+    '  → Multiple AI models cross-check your claim',
+    '  → This usually takes 30–60 seconds',
+    '',
+    '<b>Step 3:</b> Get your results',
+    '  → Truth Score, Confidence, Verdict',
+    '  → A shareable Evidence Passport link',
+    '',
+    '━━━━━━━━━━━━━━━━━━',
+    '',
+    '🧪 <b>Try it now!</b> Paste a claim below 👇',
   ].join('\n');
 }
 
 function formatResult(result: MeshPassportResult): string {
   const link = passportUrl(result.publicId);
+  const emoji = verdictEmoji(result.verdict);
+  const truthScore = Math.round(result.truthScore);
+  const confidenceScore = Math.round(result.confidenceScore);
+
   const summary = result.summary
     ? result.summary.length > 500
-      ? `${result.summary.slice(0, 500)}...`
+      ? `${result.summary.slice(0, 500)}…`
       : result.summary
-    : 'No summary returned.';
+    : 'No summary available.';
 
   return [
-    `Verdict: ${result.verdict}`,
-    `Truth score: ${Math.round(result.truthScore)}/100`,
-    `Confidence: ${Math.round(result.confidenceScore)}/100`,
+    `${emoji} <b>Verification Complete</b>`,
     '',
+    '━━━━━━━━━━━━━━━━━━',
+    '',
+    `📋 <b>Verdict:</b> ${result.verdict}`,
+    '',
+    `${scoreEmoji(truthScore)} <b>Truth Score</b>`,
+    `   ${scoreBar(truthScore)}  <b>${truthScore}</b>/100`,
+    '',
+    `🎯 <b>Confidence</b>`,
+    `   ${scoreBar(confidenceScore)}  <b>${confidenceScore}</b>/100`,
+    '',
+    '━━━━━━━━━━━━━━━━━━',
+    '',
+    `💬 <b>Summary</b>`,
     summary,
     '',
-    `Passport: ${link}`,
-    `ID: ${result.publicId}`,
+    '━━━━━━━━━━━━━━━━━━',
+    '',
+    `🆔 <code>${result.publicId}</code>`,
   ].join('\n');
+}
+
+function resultKeyboard(publicId: string): InlineKeyboard {
+  const link = passportUrl(publicId);
+  return new InlineKeyboard()
+    .url('🔗 View Passport', link)
+    .row()
+    .text('🔄 Verify Another', 'verify_another');
 }
 
 async function guard(ctx: Context): Promise<boolean> {
   if (!isAllowed(ctx)) {
-    await ctx.reply('This Mesh demo bot is restricted to allowlisted chats right now.');
+    await ctx.reply('🔒 This Mesh bot is currently restricted to allowlisted chats.', {
+      parse_mode: 'HTML',
+    });
     return false;
   }
   const chatId = ctx.chat?.id;
   if (typeof chatId !== 'number') return false;
   if (inFlight.has(chatId)) {
     await ctx.reply(
-      'A verification is already running in this chat. Please wait for it to finish.',
+      '⏳ A verification is already in progress.\nPlease wait for it to finish before starting another.',
+      { parse_mode: 'HTML' },
     );
     return false;
   }
   const limited = rateLimitMessage(chatId);
   if (limited) {
-    await ctx.reply(limited);
+    await ctx.reply(limited, { parse_mode: 'HTML' });
     return false;
   }
   return true;
 }
+
+const loadingFrames = [
+  '🔬 Analyzing with multiple AI models…',
+  '🧠 Cross-referencing sources…',
+  '📊 Calculating truth score…',
+  '📝 Generating evidence summary…',
+];
 
 async function runVerification(
   ctx: Context,
@@ -104,23 +191,72 @@ async function runVerification(
   inFlight.add(chatId);
   markRequested(chatId);
 
+  await ctx.replyWithChatAction('typing');
+
+  const labelEmoji =
+    label === 'URL' ? '🔗' : label === 'image' ? '📸' : '📄';
+
   const status = await ctx.reply(
-    `Working on your ${label}. Multi-model review can take up to a minute. Keep this chat open.`,
+    [
+      `${labelEmoji} <b>Verifying your ${label}…</b>`,
+      '',
+      `${loadingFrames[0]}`,
+      '',
+      '<i>This typically takes 30–60 seconds.</i>',
+    ].join('\n'),
+    { parse_mode: 'HTML' },
   );
+
+  let frameIndex = 0;
+  const animationInterval = setInterval(async () => {
+    frameIndex = (frameIndex + 1) % loadingFrames.length;
+    try {
+      await ctx.replyWithChatAction('typing');
+      await ctx.api.editMessageText(
+        chatId,
+        status.message_id,
+        [
+          `${labelEmoji} <b>Verifying your ${label}…</b>`,
+          '',
+          `${loadingFrames[frameIndex]}`,
+          '',
+          '<i>This typically takes 30–60 seconds.</i>',
+        ].join('\n'),
+        { parse_mode: 'HTML' },
+      );
+    } catch {
+      /* Telegram may reject edits if content is identical or too fast */
+    }
+  }, 8000);
 
   try {
     const result = await work();
+    clearInterval(animationInterval);
     await ctx.api.editMessageText(chatId, status.message_id, formatResult(result), {
+      parse_mode: 'HTML',
       link_preview_options: { is_disabled: true },
+      reply_markup: resultKeyboard(result.publicId),
     });
   } catch (error) {
+    clearInterval(animationInterval);
     const message =
       error instanceof Error
         ? error.name === 'AbortError'
-          ? 'Mesh API timed out. Try again with a shorter claim or check that the API is running.'
+          ? 'The Mesh API timed out. Try a shorter claim or check that the API is online.'
           : error.message
         : 'Unknown verification failure';
-    await ctx.api.editMessageText(chatId, status.message_id, `Verification failed\n${message}`);
+    await ctx.api.editMessageText(
+      chatId,
+      status.message_id,
+      [
+        '❌ <b>Verification Failed</b>',
+        '',
+        `${message}`,
+        '',
+        '<i>Try again or send a different claim.</i>',
+      ].join('\n'),
+      { parse_mode: 'HTML' },
+    );
   } finally {
     inFlight.delete(chatId);
   }
@@ -128,26 +264,66 @@ async function runVerification(
 
 bot.command('start', async (ctx) => {
   if (!isAllowed(ctx)) {
-    await ctx.reply('This Mesh demo bot is restricted to allowlisted chats right now.');
+    await ctx.reply('🔒 This Mesh bot is currently restricted to allowlisted chats.', {
+      parse_mode: 'HTML',
+    });
     return;
   }
+
+  const name = ctx.from?.first_name || 'there';
   await ctx.reply(
     [
-      'Mesh Telegram client',
+      `👋 Hey <b>${name}</b>!`,
       '',
-      'Every digital claim deserves a verifiable Evidence Passport.',
+      '🛡️ Welcome to <b>Mesh</b> — the Evidence Passport engine.',
       '',
-      helpText(),
+      'Every digital claim deserves a verifiable, portable proof.',
+      'Send me a claim and I\'ll run <b>multi-model AI verification</b>, then give you a shareable passport.',
+      '',
+      '━━━━━━━━━━━━━━━━━━',
+      '',
+      '🚀 <b>Get started:</b> Just send me any claim!',
+      '',
+      '  📄 Text — <i>"The Earth is 4.5 billion years old"</i>',
+      '  🔗 URL — <i>paste an article link</i>',
+      '  📸 Image — <i>upload a screenshot</i>',
+      '',
+      'Type /help for the full guide.',
     ].join('\n'),
+    { parse_mode: 'HTML' },
   );
 });
 
-bot.command(['help', 'verify'], async (ctx) => {
+bot.command('help', async (ctx) => {
   if (!isAllowed(ctx)) {
-    await ctx.reply('This Mesh demo bot is restricted to allowlisted chats right now.');
+    await ctx.reply('🔒 This Mesh bot is currently restricted to allowlisted chats.', {
+      parse_mode: 'HTML',
+    });
     return;
   }
-  await ctx.reply(helpText());
+  await ctx.reply(helpText(), { parse_mode: 'HTML' });
+});
+
+bot.command('verify', async (ctx) => {
+  if (!isAllowed(ctx)) {
+    await ctx.reply('🔒 This Mesh bot is currently restricted to allowlisted chats.', {
+      parse_mode: 'HTML',
+    });
+    return;
+  }
+  await ctx.reply(verifyHowTo(), { parse_mode: 'HTML' });
+});
+
+bot.callbackQuery('verify_another', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  await ctx.reply(
+    [
+      '🔄 <b>Ready for another verification!</b>',
+      '',
+      'Send me a text claim, URL, or image.',
+    ].join('\n'),
+    { parse_mode: 'HTML' },
+  );
 });
 
 bot.on('message:text', async (ctx) => {
@@ -166,12 +342,18 @@ bot.on('message:text', async (ctx) => {
   }
 
   if (text.length < 3) {
-    await ctx.reply('Send a claim with at least 3 characters, a URL, or an image.');
+    await ctx.reply(
+      '✏️ That\'s too short — send a claim with at least <b>3 characters</b>, a URL, or an image.',
+      { parse_mode: 'HTML' },
+    );
     return;
   }
 
   if (text.length > 10000) {
-    await ctx.reply('Text is too long. Mesh accepts up to 10,000 characters.');
+    await ctx.reply(
+      '📏 That\'s too long — Mesh accepts up to <b>10,000 characters</b>. Try shortening your claim.',
+      { parse_mode: 'HTML' },
+    );
     return;
   }
 
@@ -182,7 +364,9 @@ bot.on('message:photo', async (ctx) => {
   const photos = ctx.message.photo;
   const best = photos[photos.length - 1];
   if (!best) {
-    await ctx.reply('Could not read that photo.');
+    await ctx.reply('📸 Couldn\'t read that photo. Please try again with a clearer image.', {
+      parse_mode: 'HTML',
+    });
     return;
   }
 
@@ -196,7 +380,7 @@ bot.on('message:photo', async (ctx) => {
       if (!response.ok) throw new Error('Failed to download image from Telegram.');
       const bytes = new Uint8Array(await response.arrayBuffer());
       if (bytes.byteLength > 5 * 1024 * 1024) {
-        throw new Error('Image exceeds the 5MB Mesh limit.');
+        throw new Error('Image exceeds the 5 MB Mesh limit. Try a smaller file.');
       }
       return verifyImage(bytes, 'telegram-photo.jpg', 'image/jpeg');
     },
@@ -207,11 +391,16 @@ bot.on('message:photo', async (ctx) => {
 bot.on('message:document', async (ctx) => {
   const doc = ctx.message.document;
   if (!doc.mime_type?.startsWith('image/')) {
-    await ctx.reply('Send an image file (PNG, JPEG, or WebP), a text claim, or a URL.');
+    await ctx.reply(
+      '📎 That file type isn\'t supported.\n\nSend an <b>image</b> (PNG, JPEG, WebP), a <b>text claim</b>, or a <b>URL</b>.',
+      { parse_mode: 'HTML' },
+    );
     return;
   }
   if ((doc.file_size ?? 0) > 5 * 1024 * 1024) {
-    await ctx.reply('Image exceeds the 5MB Mesh limit.');
+    await ctx.reply('📏 Image exceeds the <b>5 MB</b> Mesh limit. Try a smaller file.', {
+      parse_mode: 'HTML',
+    });
     return;
   }
 
@@ -324,6 +513,8 @@ async function startWebhook() {
   await new Promise<void>((resolve) => {
     server.listen(env.port, () => resolve());
   });
+
+  await bot.init();
 
   await bot.api.setWebhook(url, {
     drop_pending_updates: true,

@@ -5,6 +5,7 @@ import {
   PassportClaim,
   PassportEvidence,
   PassportModelResponse,
+  PassportListResponse,
   VerifyInput,
   InputType,
   Verdict,
@@ -48,12 +49,21 @@ api.interceptors.response.use(
   },
 );
 
+/** @deprecated Prefer Passport from listPassports/getHistory */
 export interface HistoryRow {
   id: string;
+  publicId: string;
   inputType: string;
   status: string;
   truthScore: number | null;
+  confidenceScore: number | null;
+  verdict: string;
+  summary: string;
+  displayText: string;
   createdAt: string;
+  claimCount: number;
+  evidenceCount: number;
+  attestationStatus: string | null;
   passport?: { publicId: string } | null;
 }
 
@@ -149,7 +159,7 @@ function mapModelResponses(data: any, consensus: any): PassportModelResponse[] {
   return modelResponses;
 }
 
-function mapToPassport(data: any): Passport {
+export function mapToPassport(data: any): Passport {
   const input = data.input || {};
   const consensus = data.modelConsensus || {};
   const integrity = data.integrity || {};
@@ -225,8 +235,7 @@ function mapToPassport(data: any): Passport {
     },
     modelResponses,
     requestIds:
-      data.requestIds ||
-      (modelResponses.map((m) => m.requestId).filter(Boolean) as string[]),
+      data.requestIds || (modelResponses.map((m) => m.requestId).filter(Boolean) as string[]),
     integrity: {
       claimsRoot: integrity.claimsRoot || '',
       evidenceRoot: integrity.evidenceRoot || '',
@@ -276,20 +285,23 @@ export async function getPassport(publicId: string): Promise<Passport> {
   return mapToPassport(res);
 }
 
-export async function getHistory(): Promise<HistoryRow[]> {
-  const res = (await api.get('/api/v1/passports')) as any;
-  const items = res.items || [];
-  return items.map((item: any) => {
-    const input = item.input || {};
-    return {
-      id: item.verificationId || item.publicId,
-      inputType: String(input.type || item.inputType || 'text').toLowerCase(),
-      status: 'completed',
-      truthScore: item.truthScore ?? null,
-      createdAt: item.generatedAt || item.timestamp || new Date().toISOString(),
-      passport: { publicId: item.publicId },
-    };
-  });
+export async function listPassports(params?: {
+  cursor?: string;
+  limit?: number;
+  verdict?: string;
+  inputType?: string;
+}): Promise<PassportListResponse> {
+  const res = (await api.get('/api/v1/passports', { params })) as any;
+  const items = Array.isArray(res?.items) ? res.items : Array.isArray(res) ? res : [];
+  return {
+    items: items.map(mapToPassport),
+    nextCursor: res?.nextCursor ?? null,
+  };
+}
+
+export async function getHistory(): Promise<Passport[]> {
+  const { items } = await listPassports({ limit: 50 });
+  return items;
 }
 
 export async function verifyIntegrity(publicId: string): Promise<IntegrityCheckResult> {

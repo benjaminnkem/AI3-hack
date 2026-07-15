@@ -82,7 +82,11 @@ export async function verifyUrl(url: string): Promise<MeshPassportResult> {
   }
 }
 
-export async function verifyImage(bytes: Uint8Array, filename: string, mimeType: string): Promise<MeshPassportResult> {
+export async function verifyImage(
+  bytes: Uint8Array,
+  filename: string,
+  mimeType: string,
+): Promise<MeshPassportResult> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), env.requestTimeoutMs);
   try {

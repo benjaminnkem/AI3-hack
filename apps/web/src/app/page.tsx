@@ -21,8 +21,9 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { HeroBackdrop } from '@/components/landing/HeroBackdrop';
 import { PassportPreview } from '@/components/landing/PassportPreview';
 import { Reveal, Stagger, StaggerItem, easeOutExpo, fadeUp } from '@/components/landing/Motion';
+import { PassportListCard } from '@/components/PassportListCard';
 import { useVerification } from '@/hooks/useVerification';
-import { cn, scoreMeta } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 const FEATURES = [
   {
@@ -422,53 +423,11 @@ export default function Home() {
           </Reveal>
         ) : (
           <Stagger className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {history.slice(0, 3).map((item) => {
-              const score = item.truthScore != null ? Math.round(item.truthScore) : null;
-              const meta = score != null ? scoreMeta(score) : null;
-              return (
-                <StaggerItem key={item.id}>
-                  <motion.div
-                    whileHover={{ y: -4 }}
-                    className="flex h-full min-h-[12.5rem] flex-col justify-between rounded-3xl border border-white/8 bg-card/60 p-5 transition hover:border-accent/25"
-                  >
-                    <div>
-                      <div className="mb-4 flex items-center justify-between gap-2">
-                        <span className="rounded-full border border-white/8 bg-white/[0.03] px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-muted">
-                          {item.inputType}
-                        </span>
-                        <span className="text-[11px] text-muted">
-                          {new Date(item.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                      {score != null && meta ? (
-                        <div className="mb-3 flex items-end gap-2">
-                          <span className="text-3xl font-bold tabular-nums" style={{ color: meta.color }}>
-                            {score}
-                          </span>
-                          <span className="mb-1 text-xs text-muted">/ 100 · {meta.label}</span>
-                        </div>
-                      ) : (
-                        <p className="mb-3 text-sm capitalize text-muted">Status: {item.status}</p>
-                      )}
-                      <p className="text-sm leading-relaxed text-muted">
-                        {item.status === 'completed' && score != null
-                          ? 'Evidence Passport registered and available for public audit.'
-                          : `Verification is currently ${item.status}.`}
-                      </p>
-                    </div>
-                    {item.passport?.publicId && (
-                      <Link
-                        href={`/passport/${item.passport.publicId}`}
-                        className="mt-5 inline-flex w-fit items-center gap-1.5 text-xs font-semibold text-accent transition hover:underline"
-                      >
-                        View passport
-                        <ArrowRight size={12} />
-                      </Link>
-                    )}
-                  </motion.div>
-                </StaggerItem>
-              );
-            })}
+            {history.slice(0, 3).map((item) => (
+              <StaggerItem key={item.publicId}>
+                <PassportListCard passport={item} compact />
+              </StaggerItem>
+            ))}
           </Stagger>
         )}
       </section>
