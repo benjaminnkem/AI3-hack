@@ -29,7 +29,7 @@ export function HistoryTable({ rows }: { rows: HistoryRow[] }) {
                     {Math.round(r.truthScore)}
                   </span>
                 ) : (
-                  '—'
+                  '-'
                 )}
               </td>
               <td className="p-4 text-muted">{new Date(r.createdAt).toLocaleDateString()}</td>

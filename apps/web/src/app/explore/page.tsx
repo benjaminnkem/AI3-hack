@@ -135,7 +135,7 @@ export default function ExplorePage() {
                       {r.truthScore != null ? (
                         <span style={{ color: meta?.color }}>{Math.round(r.truthScore)}</span>
                       ) : (
-                        '—'
+                        '-'
                       )}
                     </td>
                     <td className="p-4">
@@ -147,7 +147,7 @@ export default function ExplorePage() {
                           {meta.label}
                         </span>
                       ) : (
-                        '—'
+                        '-'
                       )}
                     </td>
                     <td className="p-4 text-muted">{new Date(r.createdAt).toLocaleDateString()}</td>

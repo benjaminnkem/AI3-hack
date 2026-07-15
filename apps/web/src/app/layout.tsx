@@ -8,7 +8,7 @@ import { Providers } from '@/components/providers';
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
-  title: 'Mesh — Verifiable Evidence Passports',
+  title: 'Mesh | Verifiable Evidence Passports',
   description:
     'Decentralized AI verification. Every digital claim deserves a verifiable Evidence Passport.',
 };

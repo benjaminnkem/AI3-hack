@@ -10,7 +10,7 @@ const STEPS = [
   ],
   [
     'Consensus engine',
-    'Scores are blended (mean + median), agreement is measured, and disagreement is flagged — never hardcoded.',
+    'Scores are blended (mean + median), agreement is measured, and disagreement is flagged, never hardcoded.',
   ],
   [
     'Evidence Passport',

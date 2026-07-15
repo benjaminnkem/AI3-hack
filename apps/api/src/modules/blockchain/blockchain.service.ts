@@ -39,6 +39,7 @@ export class BlockchainService {
   private readonly provider: JsonRpcProvider;
   private readonly contract: Contract | null;
   readonly enabled: boolean;
+
   constructor(private readonly config: ConfigService) {
     const chainId = config.get<number>('ATTESTATION_CHAIN_ID', 11155111);
     this.provider = new JsonRpcProvider(
@@ -54,8 +55,10 @@ export class BlockchainService {
         ? new Contract(address, abi, new Wallet(key, this.provider))
         : null;
   }
+
   async attest(values: IntegrityValues): Promise<AttestationReceipt | null> {
     if (!this.enabled || !this.contract) return null;
+
     if ((await this.contract.exists(values.passportHash)) as boolean) {
       const read = await this.read(values.passportHash);
       return {
@@ -67,6 +70,7 @@ export class BlockchainService {
         existing: true,
       };
     }
+
     const tx = await this.contract.attestPassport(
       values.passportHash,
       values.inputHash,
@@ -78,11 +82,14 @@ export class BlockchainService {
       values.truthScore,
       values.verificationVersion,
     );
+
     const receipt = await tx.wait(this.config.get('ATTESTATION_CONFIRMATIONS', 1));
     if (!receipt) throw new Error('Attestation transaction was not mined');
+
     const readback = await this.read(values.passportHash);
     if (!readback || !this.matches(values, readback))
       throw new Error('Contract readback does not match passport');
+
     this.logger.log(
       JSON.stringify({
         event: 'attestation.confirmed',
@@ -99,6 +106,7 @@ export class BlockchainService {
       existing: false,
     };
   }
+
   async read(passportHash: string): Promise<ChainAttestation | null> {
     if (!this.contract || !((await this.contract.exists(passportHash)) as boolean)) return null;
     const a = (await this.contract.getAttestation(passportHash)) as {

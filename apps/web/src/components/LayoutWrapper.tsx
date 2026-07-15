@@ -7,6 +7,7 @@ import { Footer } from './Footer';
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isBadge = pathname?.startsWith('/badge');
+  const isHome = pathname === '/';
 
   if (isBadge) {
     return <>{children}</>;
@@ -15,7 +16,9 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Navbar />
-      <main className="mx-auto min-h-screen max-w-6xl px-6 py-10">{children}</main>
+      <main className={isHome ? 'min-h-screen' : 'mx-auto min-h-screen max-w-6xl px-6 py-10'}>
+        {children}
+      </main>
       <Footer />
     </>
   );

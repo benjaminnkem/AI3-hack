@@ -19,7 +19,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "dlx": "^0.2.1",
-    "ethers": "^6.13.1",
+    "ethers": "^6.17.0",
     "framer-motion": "^11.18.2",
     "input-otp": "^1.4.2",
     "latest": "^0.2.0",
