@@ -86,7 +86,7 @@ export default function VerifyPage() {
     input: '',
   });
   const [activeExample, setActiveExample] = useState<string | null>(null);
-  const { submit, isVerifying, isError, error } = useVerification();
+  const { submit, isVerifying, isError, error, progress } = useVerification();
 
   const applyExample = (example: (typeof EXAMPLES)[number]) => {
     setActiveExample(example.label);
@@ -147,7 +147,7 @@ export default function VerifyPage() {
 
         {isVerifying ? (
           <div id="verification-loading" className="mx-auto max-w-4xl scroll-mt-28">
-            <LoadingScreen />
+            <LoadingScreen progress={progress} />
           </div>
         ) : (
           <div className="grid items-start gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:gap-10">

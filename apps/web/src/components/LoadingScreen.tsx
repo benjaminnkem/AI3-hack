@@ -2,47 +2,66 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Boxes, FileSearch, GitBranch, Link2, Network, ScanSearch, Sparkles } from 'lucide-react';
+import { Boxes, FileSearch, Link2, Network, ScanSearch, ShieldCheck, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { easeOutExpo } from '@/components/landing/Motion';
+import { VerificationProgress, VerificationStage } from '@/lib/types';
 
 const STEPS = [
   {
+    stages: ['INGESTION'],
     label: 'Resolving input',
     detail: 'Normalizing text, URL content, or image transcript',
     icon: ScanSearch,
   },
   {
+    stages: ['CLAIM_EXTRACTION'],
     label: 'Extracting claims',
     detail: 'Isolating independently verifiable factual claims',
     icon: FileSearch,
   },
   {
+    stages: ['EVIDENCE_RETRIEVAL'],
     label: 'Gathering evidence',
     detail: 'Pulling supporting and opposing sources from the live web',
     icon: Network,
   },
   {
-    label: 'Kimi investigation',
-    detail: 'Running Kimi-K2.6 through Gonka Router',
+    stages: ['INVESTIGATION'],
+    label: 'Dual-model investigation',
+    detail: 'Running Kimi-K2.6 and MiniMax-M2.7 concurrently through Gonka Router',
     icon: Sparkles,
   },
   {
-    label: 'MiniMax investigation',
-    detail: 'Running MiniMax-M2.7 independently through Gonka',
-    icon: GitBranch,
+    stages: ['ADVERSARIAL_REVIEW'],
+    label: 'Adversarial review',
+    detail: 'Challenging weak evidence, omissions, and model disagreements',
+    icon: ShieldCheck,
   },
   {
+    stages: ['FINAL_NARRATIVE'],
     label: 'Building consensus',
-    detail: 'Scoring agreement, confidence, and adversarial challenges',
+    detail: 'Explaining the deterministic score without changing it',
     icon: Boxes,
   },
   {
+    stages: ['PASSPORT_CREATION'],
+    label: 'Building passport',
+    detail: 'Creating integrity roots and the portable Evidence Passport',
+    icon: Boxes,
+  },
+  {
+    stages: ['ATTESTATION', 'CACHE_HIT', 'COMPLETED'],
     label: 'Anchoring passport',
-    detail: 'Hashing the passport and preparing its Ethereum Sepolia attestation',
+    detail: 'Waiting for the Ethereum Sepolia attestation receipt',
     icon: Link2,
   },
-];
+] satisfies Array<{
+  stages: VerificationStage[];
+  label: string;
+  detail: string;
+  icon: typeof ScanSearch;
+}>;
 
 function Skeleton({ className }: { className?: string }) {
   return (
@@ -63,24 +82,33 @@ function formatElapsed(seconds: number) {
   return `${m}m ${s.toString().padStart(2, '0')}s`;
 }
 
-export function LoadingScreen({ className }: { className?: string }) {
-  const [active, setActive] = useState(0);
+export function LoadingScreen({
+  className,
+  progress: liveProgress,
+}: {
+  className?: string;
+  progress?: VerificationProgress | null;
+}) {
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
-    const stepId = window.setInterval(() => {
-      setActive((prev) => (prev < STEPS.length - 1 ? prev + 1 : prev));
-    }, 2800);
     const timeId = window.setInterval(() => {
       setElapsed((prev) => prev + 1);
     }, 1000);
     return () => {
-      window.clearInterval(stepId);
       window.clearInterval(timeId);
     };
   }, []);
 
+  const active = Math.max(
+    0,
+    STEPS.findIndex(
+      (step) =>
+        liveProgress?.stage && (step.stages as VerificationStage[]).includes(liveProgress.stage),
+    ),
+  );
   const progress = Math.min(92, ((active + 1) / STEPS.length) * 100);
+  const displayedElapsed = Math.max(elapsed, Math.floor((liveProgress?.elapsedMs ?? 0) / 1000));
   const CurrentIcon = STEPS[active]?.icon ?? ScanSearch;
 
   return (
@@ -152,7 +180,7 @@ export function LoadingScreen({ className }: { className?: string }) {
               />
               Live
             </span>
-            <span className="tabular-nums">Elapsed {formatElapsed(elapsed)}</span>
+            <span className="tabular-nums">Elapsed {formatElapsed(displayedElapsed)}</span>
           </div>
         </div>
 
@@ -189,8 +217,8 @@ export function LoadingScreen({ className }: { className?: string }) {
             </motion.div>
           </div>
           <p className="mt-2 text-[11px] text-muted">
-            Multi-model review can take up to a minute. The final attestation targets Ethereum
-            Sepolia, chain 11155111.
+            Live stages come from the synchronous verification request. This page waits for the
+            complete result and its Ethereum Sepolia receipt.
           </p>
         </div>
       </div>

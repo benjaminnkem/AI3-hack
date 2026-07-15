@@ -93,13 +93,7 @@ export class GonkaClient {
           }),
         );
         if ((status === 429 || (status !== undefined && status >= 500)) && retry < maxRetries) {
-          await this.delay(
-            Math.min(
-              60000,
-              this.config.get<number>('GONKA_RETRY_BASE_MS', 30000) * 2 ** retry +
-                Math.floor(Math.random() * 1000),
-            ),
-          );
+          await this.delay(this.retryDelay(error, retry));
           continue;
         }
         if (status === 401 || status === 403)
@@ -241,6 +235,29 @@ export class GonkaClient {
   }
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+  private retryDelay(error: unknown, retry: number): number {
+    const retryAfter = this.retryAfterMs(error);
+    if (retryAfter !== null) return Math.min(15000, retryAfter);
+    return Math.min(
+      15000,
+      this.config.get<number>('GONKA_RETRY_BASE_MS', 2000) * 2 ** retry +
+        Math.floor(Math.random() * 500),
+    );
+  }
+  private retryAfterMs(error: unknown): number | null {
+    if (!error || typeof error !== 'object' || !('headers' in error)) return null;
+    const headers = error.headers;
+    let value: unknown;
+    if (headers instanceof Headers) value = headers.get('retry-after');
+    else if (headers && typeof headers === 'object') {
+      value = (headers as Record<string, unknown>)['retry-after'];
+    }
+    if (typeof value !== 'string' && typeof value !== 'number') return null;
+    const seconds = Number(value);
+    if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1000;
+    const at = Date.parse(String(value));
+    return Number.isFinite(at) ? Math.max(0, at - Date.now()) : null;
   }
   private isInjectedForTests(): boolean {
     return this.config.get('NODE_ENV') === 'test';

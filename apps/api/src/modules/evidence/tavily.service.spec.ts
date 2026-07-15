@@ -1,5 +1,6 @@
+import { ConfigService } from '@nestjs/config';
 import { TavilyService } from './tavily.service';
-describe('TavilyService normalization', () =>
+describe('TavilyService', () => {
   it('deduplicates URL and domain and truncates excerpts', () => {
     const result = TavilyService.normalize({
       requestId: 'r',
@@ -16,4 +17,18 @@ describe('TavilyService normalization', () =>
     expect(result).toHaveLength(1);
     expect(result[0].relevance).toBe(1);
     expect(result[0].excerpt).toHaveLength(600);
-  }));
+  });
+
+  it('uses the low-latency synchronous defaults', async () => {
+    const search = jest.fn().mockResolvedValue({ results: [] });
+    const extract = jest.fn();
+    const service = new TavilyService(new ConfigService({}), { search, extract });
+
+    await service.search('test query', false);
+
+    expect(search).toHaveBeenCalledWith(
+      'test query',
+      expect.objectContaining({ searchDepth: 'fast', maxResults: 4, timeout: 15 }),
+    );
+  });
+});

@@ -9,13 +9,16 @@ import {
   VerifyInput,
   InputType,
   Verdict,
+  VerificationProgress,
 } from './types';
 
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ??
+  process.env.NEXT_PUBLIC_API_URL ??
+  'http://localhost:4000';
+
 const api = axios.create({
-  baseURL:
-    process.env.NEXT_PUBLIC_API_BASE_URL ??
-    process.env.NEXT_PUBLIC_API_URL ??
-    'http://localhost:4000',
+  baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -250,8 +253,13 @@ export function mapToPassport(data: any): Passport {
   };
 }
 
-export async function verify(input: VerifyInput): Promise<Passport> {
+export async function verify(
+  input: VerifyInput,
+  onProgress?: (progress: VerificationProgress) => void,
+): Promise<Passport> {
   const backendInputType = input.inputType.toUpperCase();
+  let body: BodyInit;
+  let headers: HeadersInit | undefined;
 
   if (backendInputType === 'IMAGE') {
     const formData = new FormData();
@@ -259,25 +267,58 @@ export async function verify(input: VerifyInput): Promise<Passport> {
     const response = await fetch(input.input);
     const blob = await response.blob();
     formData.append('file', blob, 'screenshot.png');
-    const res = (await api.post('/api/v1/verifications', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })) as any;
-    return mapToPassport(res);
+    body = formData;
+  } else {
+    body = JSON.stringify(
+      backendInputType === 'URL'
+        ? { inputType: 'URL', url: input.input }
+        : { inputType: 'TEXT', content: input.input },
+    );
+    headers = { 'Content-Type': 'application/json' };
   }
 
-  if (backendInputType === 'URL') {
-    const res = (await api.post('/api/v1/verifications', {
-      inputType: 'URL',
-      url: input.input,
-    })) as any;
-    return mapToPassport(res);
+  const response = await fetch(`${API_BASE_URL}/api/v1/verifications/stream`, {
+    method: 'POST',
+    headers,
+    body,
+  });
+  if (!response.ok) {
+    const error = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(error?.message || `Verification request failed (${response.status})`);
   }
+  if (!response.body) throw new Error('Verification stream was not available');
 
-  const res = (await api.post('/api/v1/verifications', {
-    inputType: 'TEXT',
-    content: input.input,
-  })) as any;
-  return mapToPassport(res);
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let result: unknown;
+
+  const consume = (line: string) => {
+    if (!line.trim()) return;
+    const event = JSON.parse(line) as {
+      type?: string;
+      stage?: VerificationProgress['stage'];
+      elapsedMs?: number;
+      data?: unknown;
+      message?: string;
+    };
+    if (event.type === 'progress' && event.stage && typeof event.elapsedMs === 'number') {
+      onProgress?.({ stage: event.stage, elapsedMs: event.elapsedMs });
+    } else if (event.type === 'result') result = event.data;
+    else if (event.type === 'error') throw new Error(event.message || 'Verification failed');
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    buffer += decoder.decode(value, { stream: !done });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) consume(line);
+    if (done) break;
+  }
+  consume(buffer);
+  if (!result) throw new Error('Verification completed without a passport');
+  return mapToPassport(result);
 }
 
 export async function getPassport(publicId: string): Promise<Passport> {

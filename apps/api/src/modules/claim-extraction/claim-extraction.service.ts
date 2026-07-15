@@ -14,6 +14,7 @@ export class ClaimExtractionService {
     const result = await this.gonka.structured(
       {
         model: this.config.get('GONKA_MINIMAX_MODEL', 'MiniMaxAI/MiniMax-M2.7'),
+        maxTokens: this.config.get('GONKA_CLAIM_MAX_TOKENS', 1536),
         system: prompts.claims,
         content: [{ type: 'text', text: content.slice(0, 12000) }],
       },

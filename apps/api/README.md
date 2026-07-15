@@ -30,9 +30,11 @@ Swagger is at `http://localhost:4000/docs`. Production always uses migrations; T
 - `GONKA_BASE_URL`: official Anthropic-compatible root, `https://api.gonkarouter.io`.
 - `GONKA_API_KEY`: required secret created in the [Gonka Router dashboard](https://gonkarouter.io/).
 - `GONKA_KIMI_MODEL`, `GONKA_MINIMAX_MODEL`: fixed live IDs `moonshotai/Kimi-K2.6` and `MiniMaxAI/MiniMax-M2.7`.
-- `GONKA_MAX_TOKENS`, `GONKA_TIMEOUT_MS`, `GONKA_MAX_RETRIES`, `GONKA_RETRY_BASE_MS`: output, timeout and transient retry controls. Keep tokens at least 1024; default is 4096.
+- `GONKA_MAX_TOKENS`, `GONKA_*_MAX_TOKENS`: global fallback and stage-specific output budgets. Keep every budget at least 1024.
+- `GONKA_TIMEOUT_MS`, `GONKA_MAX_RETRIES`, `GONKA_RETRY_BASE_MS`: timeout and bounded transient retry controls. Retry-After is honored up to 15 seconds.
 - `TAVILY_API_KEY`: required secret from [Tavily](https://app.tavily.com/).
-- `TAVILY_SEARCH_DEPTH`, `TAVILY_MAX_RESULTS_PER_CLAIM`: retrieval controls; `advanced` and 5 are defaults.
+- `TAVILY_SEARCH_DEPTH`, `TAVILY_EXTRACT_DEPTH`: latency/relevance controls; `fast` search and `basic` extraction are the synchronous defaults.
+- `TAVILY_MAX_RESULTS_PER_CLAIM`, `TAVILY_MAX_QUERIES_PER_CLAIM`, `TAVILY_SEARCH_CONCURRENCY`: evidence breadth and bounded parallelism controls; defaults are 4, 2 and 4.
 - `STORAGE_DRIVER`: `local` or `cloudinary`; local is safe for development.
 - `UPLOAD_DIR`, `MAX_IMAGE_BYTES`: local directory and image cap.
 - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`: required when Cloudinary is selected; obtain from its console. API secret is secret.
@@ -61,6 +63,11 @@ curl -X POST http://localhost:4000/api/v1/verifications \
 
 curl -X POST http://localhost:4000/api/v1/verifications \
   -F inputType=IMAGE -F file=@./screenshot.png
+
+# Synchronous NDJSON response: progress lines followed by one complete result line.
+curl -N -X POST http://localhost:4000/api/v1/verifications/stream \
+  -H 'content-type: application/json' \
+  -d '{"inputType":"TEXT","content":"The Great Wall is visible from the Moon with the naked eye."}'
 
 curl http://localhost:4000/api/v1/verifications/VERIFICATION_UUID
 curl http://localhost:4000/api/v1/passports/PUBLIC_ID
@@ -106,7 +113,7 @@ Deploy behind a reverse proxy with request timeouts above `GONKA_TIMEOUT_MS`, pe
 
 - `401`: create/rotate `GONKA_API_KEY`; do not use an Anthropic key.
 - Invalid model: IDs are case-sensitive; copy the two values from `.env.example`.
-- `429`: the client backs off with exponential delay beginning at 30 seconds.
+- `429`: the client honors Retry-After when present; otherwise it uses bounded exponential backoff beginning at 2 seconds.
 - Image failure: confirm PNG/JPEG/WebP, <=5 MiB, Kimi model ID, and Cloudinary credentials when selected.
 - Tavily extraction failure: the URL path automatically falls back to search; private/local destinations are rejected before retrieval.
 - RPC failure: replace the public RPC, verify chain ID 11155111, and retry the passport attestation.

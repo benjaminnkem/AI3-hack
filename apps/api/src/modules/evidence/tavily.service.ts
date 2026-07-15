@@ -56,9 +56,9 @@ export class TavilyService {
     if (!this.client) throw new ServiceUnavailableException('Tavily is not configured');
     try {
       const wire = (await this.client.extract([url], {
-        extractDepth: 'advanced',
-        format: 'text',
-        timeout: 30,
+        extractDepth: this.config.get('TAVILY_EXTRACT_DEPTH', 'basic'),
+        format: 'markdown',
+        timeout: 15,
       })) as ExtractWire;
       const content = wire.results?.[0]?.rawContent?.trim();
       if (!content) throw new Error('empty extraction');
@@ -71,13 +71,13 @@ export class TavilyService {
   async search(query: string, dateSensitive: boolean): Promise<TavilyResult[]> {
     if (!this.client) throw new ServiceUnavailableException('Tavily is not configured');
     const wire = (await this.client.search(query, {
-      searchDepth: this.config.get('TAVILY_SEARCH_DEPTH', 'advanced'),
+      searchDepth: this.config.get('TAVILY_SEARCH_DEPTH', 'fast'),
       topic: dateSensitive ? 'news' : 'general',
-      maxResults: this.config.get('TAVILY_MAX_RESULTS_PER_CLAIM', 5),
+      maxResults: this.config.get('TAVILY_MAX_RESULTS_PER_CLAIM', 4),
       chunksPerSource: 1,
       includeAnswer: false,
       includeRawContent: false,
-      timeout: 30,
+      timeout: 15,
     })) as SearchWire;
 
     return TavilyService.normalize(wire);

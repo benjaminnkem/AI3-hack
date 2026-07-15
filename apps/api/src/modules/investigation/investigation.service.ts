@@ -3,11 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Claim, Evidence } from '../../entities';
 import { GonkaClient } from '../gonka/gonka.client';
 import { GonkaResult } from '../gonka/gonka.types';
-import {
-  alignAdversarialOutput,
-  alignInvestigatorOutput,
-  alignNarrativeOutput,
-} from './align';
+import { alignAdversarialOutput, alignInvestigatorOutput, alignNarrativeOutput } from './align';
 import {
   adversarialSchema,
   AdversarialOutput,
@@ -59,6 +55,7 @@ export class InvestigationService {
       this.gonka.structured(
         {
           model: this.config.get('GONKA_KIMI_MODEL', 'moonshotai/Kimi-K2.6'),
+          maxTokens: this.config.get('GONKA_INVESTIGATOR_MAX_TOKENS', 3072),
           system: prompts.investigator,
           content: contentBlocks,
         },
@@ -67,6 +64,7 @@ export class InvestigationService {
       this.gonka.structured(
         {
           model: this.config.get('GONKA_MINIMAX_MODEL', 'MiniMaxAI/MiniMax-M2.7'),
+          maxTokens: this.config.get('GONKA_INVESTIGATOR_MAX_TOKENS', 3072),
           system: prompts.investigator,
           content: contentBlocks,
         },
@@ -91,6 +89,7 @@ export class InvestigationService {
     const result = await this.gonka.structured(
       {
         model: this.config.get('GONKA_KIMI_MODEL', 'moonshotai/Kimi-K2.6'),
+        maxTokens: this.config.get('GONKA_ADVERSARIAL_MAX_TOKENS', 2048),
         system: prompts.adversarial,
         content: [
           {
@@ -128,6 +127,7 @@ export class InvestigationService {
     const result = await this.gonka.structured(
       {
         model: this.config.get('GONKA_MINIMAX_MODEL', 'MiniMaxAI/MiniMax-M2.7'),
+        maxTokens: this.config.get('GONKA_NARRATIVE_MAX_TOKENS', 1536),
         system: prompts.narrative,
         content: [{ type: 'text', text: JSON.stringify(payload) }],
       },

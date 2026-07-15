@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomBytes } from 'node:crypto';
 import { Repository } from 'typeorm';
+import { mapConcurrent } from '../../common/async/map-concurrent';
 import {
   Attestation,
   AttestationStatus,
@@ -27,6 +28,7 @@ import { IntegrityService } from '../integrity/integrity.service';
 import { InvestigationService } from '../investigation/investigation.service';
 import { InvestigatorOutput } from '../investigation/schemas';
 import { CreateVerificationDto } from './dto/create-verification.dto';
+import { VerificationProgressReporter, VerificationProgressStage } from './verification-progress';
 
 @Injectable()
 export class VerificationService {
@@ -51,14 +53,33 @@ export class VerificationService {
   async verify(
     dto: CreateVerificationDto,
     file?: Express.Multer.File,
+    onProgress?: VerificationProgressReporter,
   ): Promise<Record<string, unknown>> {
+    const startedAt = Date.now();
+    let progressVerificationId: string | null = null;
+    const report = (stage: VerificationProgressStage) => {
+      const elapsedMs = Date.now() - startedAt;
+      this.logger.log(
+        JSON.stringify({
+          event: 'verification.stage',
+          verificationId: progressVerificationId,
+          stage,
+          elapsedMs,
+        }),
+      );
+      onProgress?.({ stage, elapsedMs });
+    };
     this.validateInput(dto, file);
     const inputHash = this.preflightHash(dto, file);
 
     const previous = await this.latest(inputHash);
 
-    if (previous && !dto.forceRefresh && this.reusable(previous))
+    if (previous && !dto.forceRefresh && this.reusable(previous)) {
+      progressVerificationId = previous.verificationId;
+      report('CACHE_HIT');
+      report('COMPLETED');
       return this.publicPassport(previous);
+    }
 
     const verification = await this.verifications.save(
       this.verifications.create({
@@ -75,8 +96,10 @@ export class VerificationService {
         completedAt: null,
       }),
     );
+    progressVerificationId = verification.id;
 
     try {
+      report('INGESTION');
       const ingested = await this.ingestion.ingest(dto.inputType, dto.content, dto.url, file);
 
       Object.assign(verification, {
@@ -88,7 +111,7 @@ export class VerificationService {
 
       await this.verifications.save(verification);
       await this.saveAudits(verification.id, 'VISUAL_NORMALIZATION', ingested.audits, {});
-      await this.stage(verification, 'CLAIM_EXTRACTION');
+      await this.stage(verification, 'CLAIM_EXTRACTION', report);
 
       const extraction = await this.claimExtraction.extract(ingested.normalizedContent);
 
@@ -119,13 +142,14 @@ export class VerificationService {
           ingested.displayText,
           extraction.audit,
           previous,
+          report,
         );
 
-      await this.stage(verification, 'EVIDENCE_RETRIEVAL');
+      await this.stage(verification, 'EVIDENCE_RETRIEVAL', report);
 
       const evidenceEntities = await this.retrieveEvidence(claimEntities);
 
-      await this.stage(verification, 'INVESTIGATION');
+      await this.stage(verification, 'INVESTIGATION', report);
 
       const panel = await this.investigation.investigate(
         ingested.normalizedContent,
@@ -135,7 +159,7 @@ export class VerificationService {
 
       await this.saveAudit(verification.id, 'KIMI_INVESTIGATOR', panel.audits[0], panel.kimi);
       await this.saveAudit(verification.id, 'MINIMAX_INVESTIGATOR', panel.audits[1], panel.minimax);
-      await this.stage(verification, 'ADVERSARIAL_REVIEW');
+      await this.stage(verification, 'ADVERSARIAL_REVIEW', report);
 
       const adversarial = await this.investigation.adversarial(
         ingested.normalizedContent,
@@ -164,7 +188,7 @@ export class VerificationService {
         scored.map(({ claim, score }) => ({ ...score, importance: claim.importance })),
       );
 
-      await this.stage(verification, 'FINAL_NARRATIVE');
+      await this.stage(verification, 'FINAL_NARRATIVE', report);
 
       const narrative = await this.investigation.narrative({
         immutableResult: overall,
@@ -186,6 +210,8 @@ export class VerificationService {
 
       await this.evidence.save(evidenceEntities);
 
+      await this.stage(verification, 'PASSPORT_CREATION', report);
+
       return await this.createPassport({
         verification,
         displayText: ingested.displayText,
@@ -204,6 +230,7 @@ export class VerificationService {
           narrative.audit,
         ],
         previous,
+        report,
       });
     } catch (error) {
       verification.status = VerificationStatus.FAILED;
@@ -212,6 +239,7 @@ export class VerificationService {
       verification.errorMessage = error instanceof Error ? error.message : 'Unknown failure';
 
       await this.verifications.save(verification);
+      report('FAILED');
 
       this.logger.error(
         `verification=${verification.id} stage=${verification.currentStage}`,
@@ -238,39 +266,46 @@ export class VerificationService {
   }
   private async retrieveEvidence(claims: Claim[]): Promise<Evidence[]> {
     const output: Evidence[] = [];
-    for (const claim of claims) {
-      const seen = new Set<string>();
-      const queries = [
-        ...claim.searchQueries,
-        `${claim.text} false OR misleading fact check`,
-      ].slice(0, 4);
-      for (const query of queries) {
-        for (const item of await this.tavily.search(query, claim.dateSensitive)) {
-          if (
-            seen.has(item.canonicalUrl) ||
-            output.filter((e) => e.claimId === claim.id).some((e) => e.domain === item.domain)
-          )
-            continue;
-          seen.add(item.canonicalUrl);
-          output.push(
-            this.evidence.create({
-              claimId: claim.id,
-              ...this.toEvidence(item),
-              direction: EvidenceDirection.NEUTRAL,
-              sourceQualityScore: 0,
-            }),
-          );
-          if (
-            output.filter((e) => e.claimId === claim.id).length >=
-            this.config.get('TAVILY_MAX_RESULTS_PER_CLAIM', 5)
-          )
-            break;
-        }
-        if (
-          output.filter((e) => e.claimId === claim.id).length >=
-          this.config.get('TAVILY_MAX_RESULTS_PER_CLAIM', 5)
-        )
-          break;
+    const maxQueries = this.config.get('TAVILY_MAX_QUERIES_PER_CLAIM', 2);
+    const tasks = claims.flatMap((claim) =>
+      [...new Set([...claim.searchQueries, `${claim.text} false OR misleading fact check`])]
+        .slice(0, maxQueries)
+        .map((query) => ({ claim, query })),
+    );
+    const searches = await mapConcurrent(
+      tasks,
+      this.config.get('TAVILY_SEARCH_CONCURRENCY', 4),
+      ({ claim, query }) => this.tavily.search(query, claim.dateSensitive),
+    );
+    const seenByClaim = new Map<
+      string,
+      { urls: Set<string>; domains: Set<string>; count: number }
+    >();
+    const maxResults = this.config.get('TAVILY_MAX_RESULTS_PER_CLAIM', 4);
+
+    for (let index = 0; index < tasks.length; index += 1) {
+      const { claim } = tasks[index]!;
+      const state = seenByClaim.get(claim.id) ?? {
+        urls: new Set<string>(),
+        domains: new Set<string>(),
+        count: 0,
+      };
+      seenByClaim.set(claim.id, state);
+
+      for (const item of searches[index] ?? []) {
+        if (state.count >= maxResults) break;
+        if (state.urls.has(item.canonicalUrl) || state.domains.has(item.domain)) continue;
+        state.urls.add(item.canonicalUrl);
+        state.domains.add(item.domain);
+        state.count += 1;
+        output.push(
+          this.evidence.create({
+            claimId: claim.id,
+            ...this.toEvidence(item),
+            direction: EvidenceDirection.NEUTRAL,
+            sourceQualityScore: 0,
+          }),
+        );
       }
     }
     return this.evidence.save(output);
@@ -345,6 +380,7 @@ export class VerificationService {
     challenges: unknown[];
     audits: GonkaResult[];
     previous: Passport | null;
+    report: (stage: VerificationProgressStage) => void;
   }) {
     const integrity = {
       claimsRoot: this.integrity.merkleRoot(
@@ -438,6 +474,7 @@ export class VerificationService {
         passportHash,
       }),
     );
+    await this.stage(args.verification, 'ATTESTATION', args.report);
     await this.attest(passport, {
       passportHash,
       inputHash: args.verification.inputHash,
@@ -449,6 +486,7 @@ export class VerificationService {
     args.verification.currentStage = 'COMPLETED';
     args.verification.completedAt = new Date();
     await this.verifications.save(args.verification);
+    args.report('COMPLETED');
     return this.publicPassport(await this.reloadPassport(passport.id));
   }
 
@@ -504,8 +542,10 @@ export class VerificationService {
     displayText: string,
     audit: GonkaResult,
     previous: Passport | null,
+    report?: (stage: VerificationProgressStage) => void,
   ) {
     const empty: InvestigatorOutput = { claims: [] };
+    await this.stage(verification, 'PASSPORT_CREATION', report);
     return this.createPassport({
       verification,
       displayText,
@@ -518,6 +558,7 @@ export class VerificationService {
       challenges: [],
       audits: [audit],
       previous,
+      report: report ?? (() => undefined),
     });
   }
 
@@ -592,9 +633,14 @@ export class VerificationService {
     for (const audit of audits) await this.saveAudit(verificationId, role, audit, output);
   }
 
-  private async stage(v: Verification, stage: string) {
+  private async stage(
+    v: Verification,
+    stage: VerificationProgressStage,
+    report?: (stage: VerificationProgressStage) => void,
+  ) {
     v.currentStage = stage;
     await this.verifications.save(v);
+    report?.(stage);
   }
 
   private preflightHash(dto: CreateVerificationDto, file?: Express.Multer.File) {

@@ -14,10 +14,12 @@ class FakeVerificationService {
   async verify(
     dto: { inputType: string; content?: string; url?: string; forceRefresh?: boolean },
     file?: Express.Multer.File,
+    onProgress?: (progress: { stage: string; elapsedMs: number }) => void,
   ) {
+    onProgress?.({ stage: 'INGESTION', elapsedMs: 1 });
     if (dto.content === 'timeout') throw new BadGatewayException('Gonka request failed');
     if (dto.forceRefresh || this.version === 0) this.version += 1;
-    return {
+    const result = {
       schemaVersion: '1.0.0',
       publicId: 'pm_test',
       verificationId: '00000000-0000-4000-8000-000000000001',
@@ -32,6 +34,8 @@ class FakeVerificationService {
       claims: dto.content === 'opinion' ? [] : [{ id: 'claim' }],
       attestation: { status: dto.content === 'chain-fail' ? 'FAILED' : 'DISABLED' },
     };
+    onProgress?.({ stage: 'COMPLETED', elapsedMs: 2 });
+    return result;
   }
   async getVerification(id: string) {
     return { id, status: 'COMPLETED', currentStage: 'COMPLETED' };
@@ -100,6 +104,21 @@ describe('Mesh API contract (e2e with deterministic adapters)', () => {
       .attach('file', Buffer.from('image'), { filename: 'a.png', contentType: 'image/png' })
       .expect(201)
       .expect(({ body }) => expect(body.data.input.imageUrl).toContain('/uploads/'));
+  });
+  it('streams real stages and the complete result on the same request', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/api/v1/verifications/stream')
+      .send({ inputType: 'TEXT', content: 'Earth is round' })
+      .expect(200)
+      .expect('content-type', /application\/x-ndjson/);
+    const events = response.text
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line) as { type: string; stage?: string; data?: unknown });
+    expect(events.map((event) => event.type)).toEqual(['progress', 'progress', 'result']);
+    expect(events[0]?.stage).toBe('INGESTION');
+    expect(events[1]?.stage).toBe('COMPLETED');
+    expect(events[2]?.data).toMatchObject({ publicId: 'pm_test' });
   });
   it('covers no-claim, external failure, failed attestation, integrity mismatch, reuse and refresh', async () => {
     await request(app.getHttpServer())

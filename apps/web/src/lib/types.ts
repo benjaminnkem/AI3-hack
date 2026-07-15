@@ -1,12 +1,7 @@
 export type InputType = 'text' | 'url' | 'image' | 'tweet' | string;
 
 export type Verdict =
-  | 'supported'
-  | 'unverified'
-  | 'misleading'
-  | 'contradicted'
-  | 'unverifiable'
-  | string;
+  'supported' | 'unverified' | 'misleading' | 'contradicted' | 'unverifiable' | string;
 
 /** Canonical backend passport payload shape (after mapping). */
 
@@ -132,4 +127,22 @@ export interface VerifyInput {
   inputType: InputType;
   input: string;
   walletAddress?: string;
+}
+
+export type VerificationStage =
+  | 'CACHE_HIT'
+  | 'INGESTION'
+  | 'CLAIM_EXTRACTION'
+  | 'EVIDENCE_RETRIEVAL'
+  | 'INVESTIGATION'
+  | 'ADVERSARIAL_REVIEW'
+  | 'FINAL_NARRATIVE'
+  | 'PASSPORT_CREATION'
+  | 'ATTESTATION'
+  | 'COMPLETED'
+  | 'FAILED';
+
+export interface VerificationProgress {
+  stage: VerificationStage;
+  elapsedMs: number;
 }

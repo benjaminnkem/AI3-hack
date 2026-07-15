@@ -76,6 +76,7 @@ export class IngestionService {
     const result = await this.gonka.structured(
       {
         model: this.config.get('GONKA_KIMI_MODEL', 'moonshotai/Kimi-K2.6'),
+        maxTokens: this.config.get('GONKA_VISUAL_MAX_TOKENS', 1536),
         system: prompts.visual,
         content: [
           {
@@ -83,8 +84,7 @@ export class IngestionService {
             text: JSON.stringify({
               mediaType: stored.mediaType,
               ocrText: ocrText || '',
-              note:
-                'Gonka currently rejects native image content blocks. This is OCR text from the uploaded screenshot/image. Normalize neutrally.',
+              note: 'Gonka currently rejects native image content blocks. This is OCR text from the uploaded screenshot/image. Normalize neutrally.',
             }),
           },
         ],
