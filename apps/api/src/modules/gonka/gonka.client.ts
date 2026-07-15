@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { HttpException, HttpStatus, Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ZodSchema } from 'zod';
+import { z } from 'zod';
 import { GONKA_TRANSPORT, GonkaRequest, GonkaResult, GonkaTransport } from './gonka.types';
 
 class AnthropicTransport implements GonkaTransport {
@@ -82,6 +82,16 @@ export class GonkaClient {
         };
       } catch (error) {
         const status = this.status(error);
+        const detail = this.errorDetail(error);
+        this.logger.warn(
+          JSON.stringify({
+            event: 'gonka.error',
+            model: request.model,
+            status,
+            detail,
+            retry,
+          }),
+        );
         if ((status === 429 || (status !== undefined && status >= 500)) && retry < maxRetries) {
           await this.delay(
             Math.min(
@@ -96,12 +106,12 @@ export class GonkaClient {
           throw new HttpException('Gonka authentication failed', HttpStatus.BAD_GATEWAY);
         if (status === 400 || status === 404)
           throw new HttpException(
-            `Gonka rejected model or request (${request.model})`,
+            `Gonka rejected model or request (${request.model})${detail ? `: ${detail}` : ''}`,
             HttpStatus.BAD_GATEWAY,
           );
         if (error instanceof HttpException) throw error;
         throw new HttpException(
-          `Gonka request failed for ${request.model}`,
+          `Gonka request failed for ${request.model}${detail ? `: ${detail}` : ''}`,
           status === 408 ? HttpStatus.GATEWAY_TIMEOUT : HttpStatus.BAD_GATEWAY,
         );
       }
@@ -109,18 +119,19 @@ export class GonkaClient {
   }
   async structured<T>(
     request: GonkaRequest,
-    schema: ZodSchema<T>,
+    schema: z.ZodType<T, z.ZodTypeDef, unknown>,
   ): Promise<{ data: T; audit: GonkaResult; repaired: boolean }> {
     const first = await this.complete(request);
     const parsed = this.tryParse(first.text, schema);
     if (parsed.success) return { data: parsed.data, audit: first, repaired: false };
+
     const repair = await this.complete({
       ...request,
-      system: `${request.system}\nRepair the supplied invalid response. Return JSON only, preserving meaning and satisfying the schema. Do not add unsupported facts.`,
+      system: `${request.system}\nRepair the supplied invalid response. Return a single valid JSON object only. No markdown. Preserve meaning. Fix enums to uppercase, numeric bounds, required arrays/fields, and UUID ids copied from the original user packet when present. Do not invent unsupported facts.`,
       content: [
         {
           type: 'text',
-          text: `Validation errors:\n${parsed.error}\n\nInvalid response:\n${first.text}`,
+          text: `Validation errors:\n${parsed.error}\n\nInvalid response:\n${this.truncate(first.text, 12000)}`,
         },
       ],
     });
@@ -142,18 +153,59 @@ export class GonkaClient {
   }
   private tryParse<T>(
     text: string,
-    schema: ZodSchema<T>,
+    schema: z.ZodType<T, z.ZodTypeDef, unknown>,
   ): { success: true; data: T } | { success: false; error: string } {
-    try {
-      const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-      const candidate = fenced?.[1] ?? text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1);
-      const result = schema.safeParse(JSON.parse(candidate));
-      return result.success
-        ? { success: true, data: result.data }
-        : { success: false, error: result.error.message };
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Invalid JSON' };
+    const candidates = this.jsonCandidates(text);
+    let lastError = 'Invalid JSON';
+    for (const candidate of candidates) {
+      try {
+        const result = schema.safeParse(JSON.parse(candidate));
+        if (result.success) return { success: true, data: result.data };
+        lastError = result.error.message;
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : 'Invalid JSON';
+      }
     }
+    return { success: false, error: lastError };
+  }
+  private jsonCandidates(text: string): string[] {
+    const cleaned = text
+      .replace(/^\uFEFF/, '')
+      .replace(/```(?:json)?/gi, '')
+      .replace(/```/g, '')
+      .trim();
+    const candidates = new Set<string>();
+    if (cleaned) candidates.add(cleaned);
+
+    const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (fenced?.[1]?.trim()) candidates.add(fenced[1].trim());
+
+    const objectStart = cleaned.indexOf('{');
+    const objectEnd = cleaned.lastIndexOf('}');
+    if (objectStart >= 0 && objectEnd > objectStart) {
+      candidates.add(cleaned.slice(objectStart, objectEnd + 1));
+    }
+
+    const arrayStart = cleaned.indexOf('[');
+    const arrayEnd = cleaned.lastIndexOf(']');
+    if (arrayStart >= 0 && arrayEnd > arrayStart) {
+      const arraySlice = cleaned.slice(arrayStart, arrayEnd + 1);
+      candidates.add(arraySlice);
+      try {
+        const parsed = JSON.parse(arraySlice);
+        if (Array.isArray(parsed)) {
+          candidates.add(JSON.stringify({ claims: parsed }));
+          candidates.add(JSON.stringify({ challenges: parsed }));
+        }
+      } catch {
+        // ignore malformed array slices
+      }
+    }
+
+    return [...candidates];
+  }
+  private truncate(value: string, max: number): string {
+    return value.length <= max ? value : `${value.slice(0, max)}...`;
   }
   private status(error: unknown): number | undefined {
     return typeof error === 'object' &&
@@ -162,6 +214,30 @@ export class GonkaClient {
       typeof error.status === 'number'
       ? error.status
       : undefined;
+  }
+  private errorDetail(error: unknown): string {
+    if (!error || typeof error !== 'object') return '';
+    const record = error as Record<string, unknown>;
+    if (typeof record.message === 'string' && record.message.trim()) {
+      const match = record.message.match(/\{[\s\S]*\}/);
+      if (match) {
+        try {
+          const parsed = JSON.parse(match[0]) as {
+            error?: { message?: string };
+            message?: string;
+          };
+          return parsed.error?.message || parsed.message || record.message;
+        } catch {
+          return record.message;
+        }
+      }
+      return record.message;
+    }
+    if (record.error && typeof record.error === 'object') {
+      const nested = record.error as Record<string, unknown>;
+      if (typeof nested.message === 'string') return nested.message;
+    }
+    return '';
   }
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));

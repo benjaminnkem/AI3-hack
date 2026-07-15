@@ -11,7 +11,9 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
     pathname === '/' ||
     pathname === '/verify' ||
     pathname === '/about' ||
-    pathname === '/explore';
+    pathname === '/explore' ||
+    pathname?.startsWith('/passport/') ||
+    pathname?.startsWith('/p/');
 
   if (isBadge) {
     return <>{children}</>;

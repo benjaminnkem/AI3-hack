@@ -1,8 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
   Activity,
@@ -16,12 +15,13 @@ import {
   Sparkles,
   Zap,
 } from 'lucide-react';
-import { verify, getHistory } from '@/lib/api';
-import { VerificationForm, VerificationFormValues } from '@/components/VerificationForm';
+import { getHistory } from '@/lib/api';
+import { VerificationForm } from '@/components/VerificationForm';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { HeroBackdrop } from '@/components/landing/HeroBackdrop';
 import { PassportPreview } from '@/components/landing/PassportPreview';
 import { Reveal, Stagger, StaggerItem, easeOutExpo, fadeUp } from '@/components/landing/Motion';
+import { useVerification } from '@/hooks/useVerification';
 import { cn, scoreMeta } from '@/lib/utils';
 
 const FEATURES = [
@@ -78,23 +78,12 @@ const STATS = [
 ];
 
 export default function Home() {
-  const router = useRouter();
-
-  const mutation = useMutation({
-    mutationFn: verify,
-    onSuccess: (data) => {
-      router.push(`/passport/${data.publicId}`);
-    },
-  });
+  const { submit, isVerifying, isError, error } = useVerification();
 
   const { data: history, isLoading: historyLoading } = useQuery({
     queryKey: ['history'],
     queryFn: getHistory,
   });
-
-  const handleSubmit = (values: VerificationFormValues) => {
-    mutation.mutate({ inputType: values.inputType, input: values.input });
-  };
 
   return (
     <div className="overflow-x-hidden">
@@ -223,24 +212,28 @@ export default function Home() {
             </ul>
           </Reveal>
 
-          <Reveal delay={0.08}>
-            {mutation.isPending ? (
-              <div className="rounded-3xl border border-white/10 bg-card/70 p-6 backdrop-blur-xl">
+          <div id="verification-loading" className="scroll-mt-28">
+            <Reveal delay={0.08}>
+              {isVerifying ? (
                 <LoadingScreen />
-              </div>
-            ) : (
-              <VerificationForm onSubmit={handleSubmit} loading={mutation.isPending} />
-            )}
-            {mutation.isError && (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-4 rounded-2xl border border-danger/40 bg-danger/5 p-4 text-sm text-danger"
-              >
-                Verification failed. Check that the API and Gonka credentials are configured.
-              </motion.div>
-            )}
-          </Reveal>
+              ) : (
+                <VerificationForm onSubmit={submit} loading={isVerifying} />
+              )}
+              {isError && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-4 rounded-2xl border border-danger/40 bg-danger/5 p-4 text-sm text-danger"
+                >
+                  <p className="font-medium">Verification failed</p>
+                  <p className="mt-1">
+                    {(error as Error)?.message ||
+                      'Check that the API and Gonka credentials are configured.'}
+                  </p>
+                </motion.div>
+              )}
+            </Reveal>
+          </div>
         </div>
       </section>
 

@@ -1,15 +1,19 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { scoreMeta } from '@/lib/utils';
+import { scoreMeta, verdictMeta } from '@/lib/utils';
 
 interface Props {
   score: number;
   size?: number;
+  verdict?: string;
 }
 
-export function TruthScoreGauge({ score, size = 200 }: Props) {
-  const { color, label } = scoreMeta(score);
+export function TruthScoreGauge({ score, size = 200, verdict }: Props) {
+  const fromScore = scoreMeta(score);
+  const fromVerdict = verdict ? verdictMeta(verdict) : null;
+  const color = fromVerdict?.color || fromScore.color;
+  const label = fromVerdict?.label || fromScore.label;
   const stroke = 14;
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
