@@ -16,7 +16,7 @@ export default function BadgePage({ params }: { params: Promise<{ id: string }> 
 
   if (isLoading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background text-xs text-muted">
+      <div className="product-page flex h-screen w-screen items-center justify-center bg-background text-xs text-muted">
         Loading Badge…
       </div>
     );
@@ -24,7 +24,7 @@ export default function BadgePage({ params }: { params: Promise<{ id: string }> 
 
   if (isError || !data) {
     return (
-      <div className="flex h-screen w-screen flex-col items-center justify-center gap-1 border border-danger/30 bg-background p-3 text-center">
+      <div className="product-page flex h-screen w-screen flex-col items-center justify-center gap-1 border border-danger/30 bg-background p-3 text-center">
         <ShieldAlert size={16} className="text-danger" />
         <span className="text-[10px] font-semibold text-danger">Passport Not Found</span>
       </div>
@@ -39,7 +39,7 @@ export default function BadgePage({ params }: { params: Promise<{ id: string }> 
       href={`/passport/${data.publicId}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex h-screen w-screen items-center justify-between border border-border bg-card p-4 hover:border-accent/40 transition-colors duration-200 select-none overflow-hidden"
+      className="product-page flex h-screen w-screen items-center justify-between overflow-hidden border border-border bg-card p-4 transition-colors duration-200 hover:border-accent/40 select-none"
     >
       <div className="flex flex-col justify-between h-full">
         <div className="flex items-center gap-1.5 font-semibold text-xs text-white">
@@ -64,7 +64,7 @@ export default function BadgePage({ params }: { params: Promise<{ id: string }> 
         <div className="flex items-center gap-1 text-[9px] text-muted">
           {isAttested ? (
             <span className="text-accent font-semibold flex items-center gap-0.5">
-              On-Chain Attested
+              Ethereum Sepolia
             </span>
           ) : (
             <span>Hashed Payload</span>

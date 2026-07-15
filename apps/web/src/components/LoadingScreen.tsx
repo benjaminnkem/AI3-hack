@@ -2,15 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Boxes,
-  FileSearch,
-  GitBranch,
-  Link2,
-  Network,
-  ScanSearch,
-  Sparkles,
-} from 'lucide-react';
+import { Boxes, FileSearch, GitBranch, Link2, Network, ScanSearch, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { easeOutExpo } from '@/components/landing/Motion';
 
@@ -47,19 +39,14 @@ const STEPS = [
   },
   {
     label: 'Anchoring passport',
-    detail: 'Hashing the Evidence Passport and preparing attestation',
+    detail: 'Hashing the passport and preparing its Ethereum Sepolia attestation',
     icon: Link2,
   },
 ];
 
 function Skeleton({ className }: { className?: string }) {
   return (
-    <div
-      className={cn(
-        'relative overflow-hidden rounded-xl bg-white/[0.06]',
-        className,
-      )}
-    >
+    <div className={cn('relative overflow-hidden rounded-xl bg-white/[0.06]', className)}>
       <motion.div
         className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent"
         animate={{ translateX: ['-100%', '100%'] }}
@@ -140,7 +127,7 @@ export function LoadingScreen({ className }: { className?: string }) {
             </div>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-accent">
-                Working on your verification
+                Verification pipeline · Ethereum Sepolia
               </p>
               <AnimatePresence mode="wait">
                 <motion.p
@@ -202,7 +189,8 @@ export function LoadingScreen({ className }: { className?: string }) {
             </motion.div>
           </div>
           <p className="mt-2 text-[11px] text-muted">
-            Multi-model review can take up to a minute. Keep this tab open.
+            Multi-model review can take up to a minute. The final attestation targets Ethereum
+            Sepolia, chain 11155111.
           </p>
         </div>
       </div>
@@ -253,10 +241,7 @@ export function LoadingScreen({ className }: { className?: string }) {
 
           <div className="space-y-3">
             {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className="rounded-2xl border border-white/8 bg-black/15 p-4"
-              >
+              <div key={i} className="rounded-2xl border border-white/8 bg-black/15 p-4">
                 <div className="mb-3 flex items-start gap-3">
                   <Skeleton className="h-5 w-5 shrink-0 rounded-full" />
                   <div className="min-w-0 flex-1 space-y-2">

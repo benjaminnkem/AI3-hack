@@ -18,12 +18,12 @@ export default function PassportPage({ params }: { params: Promise<{ id: string 
   });
 
   return (
-    <div className="relative overflow-x-hidden">
+    <div className="product-page relative overflow-x-hidden">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[360px]">
         <HeroBackdrop />
       </div>
 
-      <div className="relative mx-auto max-w-6xl px-6 pb-16 pt-8 sm:pt-10">
+      <div className="section-shell relative pb-24 pt-12 sm:pt-16">
         <motion.div
           initial="hidden"
           animate="show"
@@ -42,15 +42,19 @@ export default function PassportPage({ params }: { params: Promise<{ id: string 
               Back to explorer
             </Link>
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
+              <span className="section-label inline-flex items-center gap-2 border-l border-accent bg-accent/[0.06] px-3 py-2">
                 <ShieldCheck size={12} />
                 Evidence Passport
               </span>
             </div>
-            <h1 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
+            <h1 className="mt-5 text-4xl font-semibold tracking-[-0.04em] sm:text-6xl">
               Verification receipt
             </h1>
             <p className="mt-1 font-mono text-xs text-muted sm:text-sm">{id}</p>
+            <div className="product-network-strip mt-4">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+              Attestation network · Ethereum Sepolia · chain 11155111
+            </div>
           </motion.div>
 
           <motion.div variants={fadeUp} className="flex flex-wrap gap-2">

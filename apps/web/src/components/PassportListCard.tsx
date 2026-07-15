@@ -39,19 +39,19 @@ function attestationLabel(passport: Passport): { label: string; className: strin
   const status = (passport.attestation?.status || '').toUpperCase();
   if (status === 'CONFIRMED' || passport.attestation?.transactionHash) {
     return {
-      label: 'On-chain',
+      label: 'Sepolia attested',
       className: 'border-accent/30 bg-accent/10 text-accent',
     };
   }
   if (status === 'FAILED') {
     return {
-      label: 'Attest failed',
+      label: 'Sepolia failed',
       className: 'border-danger/30 bg-danger/10 text-danger',
     };
   }
   if (status === 'PENDING') {
     return {
-      label: 'Attest pending',
+      label: 'Sepolia pending',
       className: 'border-warn/30 bg-warn/10 text-warn',
     };
   }
@@ -138,7 +138,9 @@ export function PassportListCard({
             </div>
           </div>
 
-          <p className="line-clamp-2 text-sm font-medium leading-relaxed text-white/90">{preview}</p>
+          <p className="line-clamp-2 text-sm font-medium leading-relaxed text-white/90">
+            {preview}
+          </p>
 
           {summary ? (
             <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted">{summary}</p>

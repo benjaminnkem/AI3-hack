@@ -4,14 +4,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Activity,
-  ArrowRight,
-  Compass,
-  RefreshCw,
-  Search,
-  ShieldCheck,
-} from 'lucide-react';
+import { Activity, ArrowRight, Compass, RefreshCw, Search, ShieldCheck } from 'lucide-react';
 import { getHistory } from '@/lib/api';
 import { Passport } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -87,12 +80,12 @@ export default function ExplorePage() {
   }, [data, filterType, filterVerdict, query]);
 
   return (
-    <div className="relative overflow-x-hidden">
+    <div className="product-page relative overflow-x-hidden">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px]">
         <HeroBackdrop />
       </div>
 
-      <div className="relative mx-auto max-w-6xl px-6 pb-16 pt-10 sm:pt-14">
+      <div className="section-shell relative pb-24 pt-14 sm:pt-20">
         <motion.div
           initial="hidden"
           animate="show"
@@ -100,25 +93,26 @@ export default function ExplorePage() {
             hidden: {},
             show: { transition: { staggerChildren: 0.08, delayChildren: 0.04 } },
           }}
-          className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between"
+          className="mb-14 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between"
         >
-          <div className="max-w-2xl">
+          <div className="max-w-4xl">
             <motion.div variants={fadeUp}>
-              <span className="inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/10 px-3.5 py-1.5 text-xs font-medium text-accent shadow-[0_0_24px_-8px_rgba(34,229,154,0.55)]">
+              <span className="section-label inline-flex items-center gap-2 border-l border-accent bg-accent/[0.06] px-3 py-2">
                 <Compass size={13} />
                 Public registry
               </span>
             </motion.div>
-            <motion.h1
-              variants={fadeUp}
-              className="mt-5 text-4xl font-bold tracking-tight sm:text-5xl"
-            >
+            <motion.h1 variants={fadeUp} className="product-page-heading mt-7">
               Evidence Explorer
             </motion.h1>
-            <motion.p variants={fadeUp} className="mt-4 text-base leading-relaxed text-muted sm:text-lg">
+            <motion.p variants={fadeUp} className="section-copy mt-7">
               Browse public Evidence Passports from the Mesh API. Filter by input type and verdict,
               then open any passport for claims, evidence, models, and integrity roots.
             </motion.p>
+            <motion.div variants={fadeUp} className="product-network-strip mt-6">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+              Registry network · Ethereum Sepolia · chain 11155111
+            </motion.div>
           </div>
 
           <motion.div variants={fadeUp} className="flex flex-wrap gap-3">
@@ -143,7 +137,7 @@ export default function ExplorePage() {
         <Stagger className="mb-8 grid gap-3 sm:grid-cols-3">
           {[
             { label: 'Passports indexed', value: String(stats.total), icon: Activity },
-            { label: 'On-chain attested', value: String(stats.onChain), icon: ShieldCheck },
+            { label: 'Sepolia attestations', value: String(stats.onChain), icon: ShieldCheck },
             {
               label: 'Avg truth score',
               value: stats.avg != null ? String(stats.avg) : '-',
@@ -334,8 +328,7 @@ export default function ExplorePage() {
             </motion.div>
           </AnimatePresence>
         )}
-
-        </div>
+      </div>
     </div>
   );
 }

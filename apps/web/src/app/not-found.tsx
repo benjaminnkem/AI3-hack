@@ -3,7 +3,7 @@ import { ArrowLeft, ScanSearch } from 'lucide-react';
 
 export default function NotFound() {
   return (
-    <section className="section-shell flex min-h-[70svh] items-center py-20">
+    <section className="product-page section-shell flex min-h-[70svh] items-center py-20">
       <div className="max-w-2xl">
         <p className="section-label">404 / Record not found</p>
         <ScanSearch className="mt-8 text-accent" size={28} aria-hidden />

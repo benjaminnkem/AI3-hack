@@ -304,6 +304,28 @@ html {
   white-space: nowrap;
 }
 
+@media (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  html.mesh-custom-cursor,
+  html.mesh-custom-cursor body,
+  html.mesh-custom-cursor body * {
+    cursor: none !important;
+  }
+
+  html.mesh-custom-cursor input,
+  html.mesh-custom-cursor textarea,
+  html.mesh-custom-cursor [contenteditable='true'] {
+    cursor: text !important;
+  }
+
+  html.mesh-custom-cursor select,
+  html.mesh-custom-cursor input[type='checkbox'],
+  html.mesh-custom-cursor input[type='radio'],
+  html.mesh-custom-cursor input[type='range'],
+  html.mesh-custom-cursor input[type='file'] {
+    cursor: auto !important;
+  }
+}
+
 @media (pointer: coarse), (prefers-reduced-motion: reduce) {
   .mesh-cursor {
     display: none;
@@ -322,6 +344,65 @@ html {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+.product-page {
+  position: relative;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--border) 36%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--border) 26%, transparent) 1px, transparent 1px);
+  background-size: 72px 72px;
+  background-position: center top;
+}
+
+.product-page::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    var(--background) 0%,
+    transparent 18%,
+    transparent 82%,
+    var(--background) 100%
+  );
+}
+
+.product-page .rounded-3xl,
+.product-page .rounded-\[2rem\] {
+  border-radius: 0 !important;
+}
+
+.product-page .rounded-2xl {
+  border-radius: 0.25rem !important;
+}
+
+.product-page .rounded-xl {
+  border-radius: 0.125rem !important;
+}
+
+.product-page .product-page-heading {
+  font-size: clamp(3rem, 7vw, 6.75rem);
+  line-height: 0.93;
+  letter-spacing: -0.06em;
+  font-weight: 600;
+  text-wrap: balance;
+}
+
+.product-page .product-network-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: fit-content;
+  border-left: 1px solid var(--primary);
+  padding: 0.55rem 0.8rem;
+  background: color-mix(in srgb, var(--primary) 6%, transparent);
+  font-family: monospace;
+  font-size: 0.625rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 /* Custom Auth Page Animations */

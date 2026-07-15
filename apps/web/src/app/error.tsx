@@ -15,7 +15,7 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <section className="section-shell flex min-h-[70svh] items-center py-20">
+    <section className="product-page section-shell flex min-h-[70svh] items-center py-20">
       <div className="max-w-2xl">
         <p className="section-label">Interface exception</p>
         <TriangleAlert className="mt-8 text-warn" size={28} aria-hidden />

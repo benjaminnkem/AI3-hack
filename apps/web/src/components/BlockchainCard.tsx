@@ -24,7 +24,7 @@ export function BlockchainCard({
     setRetrying(true);
     try {
       await retryAttestation(publicId);
-      toast.success('Attestation registered on-chain');
+      toast.success('Attestation registered on Ethereum Sepolia');
       queryClient.invalidateQueries({ queryKey: ['passport', publicId] });
       queryClient.invalidateQueries({ queryKey: ['history'] });
     } catch (err: any) {
@@ -44,7 +44,12 @@ export function BlockchainCard({
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <ShieldCheck size={18} className="text-accent" />
-          <h3 className="text-lg font-semibold">On-chain attestation</h3>
+          <div>
+            <h3 className="text-lg font-semibold">Ethereum Sepolia attestation</h3>
+            <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
+              Network 11155111 · tamper-evident receipt
+            </p>
+          </div>
         </div>
         {attestation?.status ? (
           <span
@@ -69,12 +74,10 @@ export function BlockchainCard({
           </dd>
         </div>
 
-        {attestation?.network ? (
-          <div className="flex items-center justify-between gap-3">
-            <dt className="text-muted">Network</dt>
-            <dd className="text-right text-xs capitalize">{attestation.network}</dd>
-          </div>
-        ) : null}
+        <div className="flex items-center justify-between gap-3">
+          <dt className="text-muted">Network</dt>
+          <dd className="text-right text-xs">Ethereum Sepolia</dd>
+        </div>
 
         {attestation?.contractAddress ? (
           <div className="flex items-center justify-between gap-3">
@@ -143,7 +146,7 @@ export function BlockchainCard({
                 className="flex w-full items-center justify-center gap-1.5 rounded-2xl bg-accent py-2.5 text-xs font-semibold text-background shadow-glow transition hover:opacity-90 disabled:opacity-50"
               >
                 <RefreshCw size={13} className={retrying ? 'animate-spin' : ''} />
-                {retrying ? 'Attesting…' : 'Register on-chain attestation'}
+                {retrying ? 'Attesting on Sepolia…' : 'Register on Ethereum Sepolia'}
               </button>
             ) : null}
           </div>

@@ -41,7 +41,7 @@ const PIPELINE = [
   {
     icon: Boxes,
     title: 'Passport + attest',
-    body: 'Deterministic Truth Score, hash roots, optional Sepolia anchor.',
+    body: 'Deterministic Truth Score and integrity roots anchored on Ethereum Sepolia.',
   },
 ];
 
@@ -95,12 +95,12 @@ export default function VerifyPage() {
   };
 
   return (
-    <div className="relative overflow-x-hidden">
+    <div className="product-page relative overflow-x-hidden">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[520px]">
         <HeroBackdrop />
       </div>
 
-      <div className="relative mx-auto max-w-6xl px-6 pb-16 pt-10 sm:pt-14">
+      <div className="section-shell relative pb-24 pt-14 sm:pt-20">
         <motion.div
           initial="hidden"
           animate="show"
@@ -108,26 +108,28 @@ export default function VerifyPage() {
             hidden: {},
             show: { transition: { staggerChildren: 0.08, delayChildren: 0.04 } },
           }}
-          className="mb-10 max-w-2xl"
+          className="mb-14 max-w-4xl"
         >
           <motion.div variants={fadeUp}>
-            <span className="inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/10 px-3.5 py-1.5 text-xs font-medium text-accent shadow-[0_0_24px_-8px_rgba(34,229,154,0.55)]">
+            <span className="section-label inline-flex items-center gap-2 border-l border-accent bg-accent/[0.06] px-3 py-2">
               <ShieldCheck size={13} />
               Launch App
             </span>
           </motion.div>
 
-          <motion.h1
-            variants={fadeUp}
-            className="mt-5 text-4xl font-bold tracking-tight sm:text-5xl"
-          >
+          <motion.h1 variants={fadeUp} className="product-page-heading mt-7">
             Verify a claim
           </motion.h1>
 
-          <motion.p variants={fadeUp} className="mt-4 text-base leading-relaxed text-muted sm:text-lg">
-            Submit text, a URL, or a screenshot. Mesh extracts factual claims, gathers live evidence,
-            runs two independent models, and returns a portable Evidence Passport.
+          <motion.p variants={fadeUp} className="section-copy mt-7">
+            Submit text, a URL, or a screenshot. Mesh extracts factual claims, gathers live
+            evidence, runs two independent models, and returns a portable Evidence Passport.
           </motion.p>
+
+          <motion.div variants={fadeUp} className="product-network-strip mt-6">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+            Attestation network · Ethereum Sepolia · chain 11155111
+          </motion.div>
 
           <motion.div variants={fadeUp} className="mt-6 flex flex-wrap gap-2">
             {INPUT_TYPES.map(({ icon: Icon, label, detail }) => (
@@ -222,7 +224,7 @@ export default function VerifyPage() {
                       'Kimi and MiniMax scores side by side',
                       'Deterministic 0-100 Truth Score and verdict',
                       'Gonka response IDs for auditability',
-                      'On-chain hash attestation on Sepolia',
+                      'Ethereum Sepolia attestation · chain 11155111',
                     ].map((item) => (
                       <li key={item} className="flex items-start gap-2.5 text-sm text-muted">
                         <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-accent" />

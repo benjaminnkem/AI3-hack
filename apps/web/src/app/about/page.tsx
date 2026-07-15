@@ -85,12 +85,12 @@ const VERDICTS = [
 
 export default function AboutPage() {
   return (
-    <div className="relative overflow-x-hidden">
+    <div className="product-page relative overflow-x-hidden">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[480px]">
         <HeroBackdrop />
       </div>
 
-      <div className="relative mx-auto max-w-6xl px-6 pb-16 pt-10 sm:pt-14">
+      <div className="section-shell relative pb-24 pt-14 sm:pt-20">
         <motion.div
           initial="hidden"
           animate="show"
@@ -98,26 +98,28 @@ export default function AboutPage() {
             hidden: {},
             show: { transition: { staggerChildren: 0.08, delayChildren: 0.04 } },
           }}
-          className="mb-14 max-w-2xl"
+          className="mb-20 max-w-4xl"
         >
           <motion.div variants={fadeUp}>
-            <span className="inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/10 px-3.5 py-1.5 text-xs font-medium text-accent shadow-[0_0_24px_-8px_rgba(34,229,154,0.55)]">
+            <span className="section-label inline-flex items-center gap-2 border-l border-accent bg-accent/[0.06] px-3 py-2">
               <ShieldCheck size={13} />
               Protocol overview
             </span>
           </motion.div>
 
-          <motion.h1
-            variants={fadeUp}
-            className="mt-5 text-4xl font-bold tracking-tight sm:text-5xl"
-          >
+          <motion.h1 variants={fadeUp} className="product-page-heading mt-7">
             How Mesh works
           </motion.h1>
 
-          <motion.p variants={fadeUp} className="mt-4 text-base leading-relaxed text-muted sm:text-lg">
+          <motion.p variants={fadeUp} className="section-copy mt-7">
             Mesh turns a digital claim into a portable Evidence Passport: multi-model investigation,
             live evidence, a transparent Truth Score, and a tamper-evident on-chain receipt.
           </motion.p>
+
+          <motion.div variants={fadeUp} className="product-network-strip mt-6">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+            Attestations settle on Ethereum Sepolia · chain 11155111
+          </motion.div>
 
           <motion.div variants={fadeUp} className="mt-7 flex flex-wrap gap-3">
             <Link
@@ -240,7 +242,8 @@ export default function AboutPage() {
                 </p>
                 <h3 className="text-xl font-semibold tracking-tight">How Truth Score maps</h3>
                 <p className="mt-2 text-sm text-muted">
-                  Overall scores are importance-weighted across claims, then rounded to whole numbers.
+                  Overall scores are importance-weighted across claims, then rounded to whole
+                  numbers.
                 </p>
                 <div className="mt-6 space-y-3">
                   {VERDICTS.map((v) => (
@@ -270,10 +273,12 @@ export default function AboutPage() {
               <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-accent/20 blur-3xl" />
               <div className="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
                 <div className="max-w-xl">
-                  <h2 className="text-3xl font-bold tracking-tight">Ready to run a verification?</h2>
+                  <h2 className="text-3xl font-bold tracking-tight">
+                    Ready to run a verification?
+                  </h2>
                   <p className="mt-4 text-muted leading-relaxed">
                     Submit a claim and get a public Evidence Passport with model outputs, evidence,
-                    Gonka IDs, and optional on-chain attestation.
+                    Gonka IDs, and an Ethereum Sepolia attestation receipt.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-3">

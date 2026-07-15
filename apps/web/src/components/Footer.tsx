@@ -5,10 +5,10 @@ import { motion } from 'framer-motion';
 import { ExternalLink, Network } from 'lucide-react';
 
 const LINKS = [
+  { href: '/', label: 'Home' },
   { href: '/verify', label: 'Verify' },
   { href: '/explore', label: 'Explore' },
   { href: '/about', label: 'About' },
-  { href: '/#passport', label: 'Evidence Passport' },
 ];
 
 const TELEGRAM_URL = 'https://t.me/mesh_passport_bot';

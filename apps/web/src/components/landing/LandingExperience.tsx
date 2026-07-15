@@ -1,16 +1,23 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useLayoutEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import {
+  AnimatePresence,
+  motion,
+  useMotionValue,
+  useReducedMotion,
+  useScroll,
+  useSpring,
+  useTransform,
+} from 'framer-motion';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import {
   ArrowRight,
   Bot,
-  Braces,
   CheckCircle2,
-  Code2,
   Copy,
   ExternalLink,
   FileCheck2,
@@ -19,16 +26,13 @@ import {
   MessageCircle,
   Network,
   Newspaper,
-  Radio,
   ShieldCheck,
   Sparkles,
   UserRound,
-  WalletCards,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { HeroBackdrop } from './HeroBackdrop';
-import { ImagePlaceholder } from './ImagePlaceholder';
-import { Reveal, Stagger, StaggerItem, easeOutExpo } from './Motion';
+import { Reveal } from './Motion';
 import { VerificationPipeline } from './VerificationPipeline';
 
 const TELEGRAM_URL = 'https://t.me/mesh_passport_bot';
@@ -65,165 +69,110 @@ const PROBLEMS = [
   ],
 ];
 
-const HERO_TABS = ['Consensus', 'Evidence', 'Attestation'] as const;
-type HeroTab = (typeof HERO_TABS)[number];
-
 function HeroProductPreview() {
-  const [tab, setTab] = useState<HeroTab>('Consensus');
+  const previewRef = useRef<HTMLDivElement>(null);
+  const reducedMotion = useReducedMotion();
+  const pointerRotateX = useMotionValue(0);
+  const pointerRotateY = useMotionValue(0);
+  const rotateX = useSpring(pointerRotateX, { stiffness: 180, damping: 22, mass: 0.6 });
+  const rotateY = useSpring(pointerRotateY, { stiffness: 180, damping: 22, mass: 0.6 });
+  const { scrollYProgress } = useScroll({
+    target: previewRef,
+    offset: ['start end', 'end start'],
+  });
+  const gravityY = useTransform(scrollYProgress, [0, 0.45, 1], [70, 0, -90]);
+  const gravityRotate = useTransform(scrollYProgress, [0, 0.5, 1], [1.4, 0, -1.2]);
+  const gravityScale = useTransform(scrollYProgress, [0, 0.5, 1], [0.95, 1, 0.97]);
+
+  const resetTilt = () => {
+    pointerRotateX.set(0);
+    pointerRotateY.set(0);
+  };
+
   return (
     <motion.div
+      ref={previewRef}
       data-hero-preview
-      initial={{ opacity: 0, y: 48, rotateX: 7 }}
-      animate={{ opacity: 1, y: 0, rotateX: 0 }}
-      transition={{ duration: 1, delay: 0.5, ease: easeOutExpo }}
+      initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -90, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={
+        reducedMotion
+          ? { duration: 0.3 }
+          : { type: 'spring', stiffness: 72, damping: 15, mass: 1.05, delay: 0.35 }
+      }
       className="relative mx-auto mt-16 max-w-5xl perspective-[1400px] sm:mt-20"
     >
-      <div className="absolute -inset-10 bg-accent/[0.06] blur-3xl" aria-hidden />
-      <div className="technical-panel relative overflow-hidden bg-card/90 shadow-[0_35px_100px_-55px_rgba(34,229,154,0.45)] backdrop-blur-xl">
-        <div className="flex flex-col gap-4 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center border border-accent/20 bg-accent/10 text-accent">
-              <ShieldCheck size={16} />
-            </span>
-            <div>
-              <p className="text-xs font-semibold">Evidence Passport</p>
-              <p className="font-mono text-[10px] text-muted">mesh_7f3a91d4 · version 1</p>
+      <motion.div
+        style={
+          reducedMotion ? undefined : { y: gravityY, rotateZ: gravityRotate, scale: gravityScale }
+        }
+      >
+        <motion.div
+          data-cursor="VIEW"
+          onPointerMove={(event) => {
+            if (reducedMotion || event.pointerType !== 'mouse') return;
+            const bounds = event.currentTarget.getBoundingClientRect();
+            const x = (event.clientX - bounds.left) / bounds.width - 0.5;
+            const y = (event.clientY - bounds.top) / bounds.height - 0.5;
+            pointerRotateY.set(x * 5.5);
+            pointerRotateX.set(y * -4.5);
+          }}
+          onPointerLeave={resetTilt}
+          style={reducedMotion ? undefined : { rotateX, rotateY, transformPerspective: 1400 }}
+          className="relative will-change-transform"
+        >
+          <div className="absolute -inset-10 bg-accent/[0.08] blur-3xl" aria-hidden />
+          <div className="technical-panel relative overflow-hidden bg-card/95 shadow-[0_40px_120px_-56px_rgba(34,229,154,0.5)]">
+            <div className="flex items-center justify-between gap-4 border-b border-border px-4 py-3 sm:px-5">
+              <div className="flex items-center gap-3">
+                <span className="flex h-8 w-8 items-center justify-center border border-accent/25 bg-accent/10 text-accent">
+                  <ShieldCheck size={14} />
+                </span>
+                <div className="text-left">
+                  <p className="text-xs font-semibold">Real verification result</p>
+                  <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-muted">
+                    Multi-model consensus · Gonka Router
+                  </p>
+                </div>
+              </div>
+              <span className="hidden items-center gap-2 font-mono text-[9px] uppercase tracking-[0.14em] text-accent sm:inline-flex">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent" /> Live artifact
+              </span>
+            </div>
+            <div className="relative aspect-[16/10] overflow-hidden bg-background">
+              <Image
+                src="/verification.png"
+                alt="Mesh verification result showing Truth Score and Kimi and MiniMax model consensus"
+                width={1608}
+                height={1438}
+                priority
+                sizes="(max-width: 768px) 94vw, 1024px"
+                className="h-full w-full object-cover object-top"
+              />
+              <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/[0.04]" />
             </div>
           </div>
-          <div
-            className="flex gap-1 border border-border bg-background/70 p-1"
-            role="tablist"
-            aria-label="Passport preview"
+
+          <motion.div
+            aria-hidden
+            animate={reducedMotion ? undefined : { y: [0, -9, 0] }}
+            transition={{ duration: 4.6, repeat: Infinity, ease: 'easeInOut' }}
+            className="absolute -left-3 top-1/3 hidden border border-accent/25 bg-background/90 px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-accent backdrop-blur md:block"
           >
-            {HERO_TABS.map((item) => (
-              <button
-                key={item}
-                type="button"
-                role="tab"
-                aria-selected={tab === item}
-                onClick={() => setTab(item)}
-                className={cn(
-                  'relative min-h-9 px-3 text-[11px] font-medium transition',
-                  tab === item ? 'text-background' : 'text-muted hover:text-white',
-                )}
-              >
-                {tab === item && (
-                  <motion.span
-                    layoutId="hero-tab"
-                    className="absolute inset-0 bg-accent"
-                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                  />
-                )}
-                <span className="relative">{item}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid min-h-[390px] lg:grid-cols-[0.72fr_1.28fr]">
-          <div className="border-b border-border p-6 lg:border-b-0 lg:border-r sm:p-8">
-            <p className="section-label">Confidence assessment</p>
-            <div className="mt-8 flex items-end gap-2">
-              <span className="text-7xl font-semibold tracking-[-0.08em]">84</span>
-              <span className="pb-2 text-lg text-muted">/100</span>
-            </div>
-            <span className="mt-4 inline-flex items-center gap-2 border border-accent/30 bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent">
-              <CheckCircle2 size={13} />
-              Supported
-            </span>
-            <p className="mt-8 text-sm leading-7 text-muted">
-              Available evidence substantially supports the claim, with a narrow model spread and
-              one unresolved context note.
-            </p>
-          </div>
-
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={tab}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.22 }}
-              className="p-6 sm:p-8"
-            >
-              {tab === 'Consensus' && (
-                <div className="grid h-full content-center gap-4 sm:grid-cols-2">
-                  {[
-                    ['Kimi-K2.6', '87', 'SUPPORTED'],
-                    ['MiniMax-M2.7', '81', 'SUPPORTED'],
-                  ].map(([model, score, verdict]) => (
-                    <div key={model} className="border border-border bg-surface/60 p-5">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-[10px] text-muted">{model}</span>
-                        <Radio size={13} className="text-accent" />
-                      </div>
-                      <p className="mt-8 text-4xl font-semibold">{score}</p>
-                      <p className="mt-2 text-[10px] font-semibold tracking-[0.16em] text-accent">
-                        {verdict}
-                      </p>
-                    </div>
-                  ))}
-                  <div className="sm:col-span-2 border border-warn/25 bg-warn/5 p-4 text-xs leading-6 text-muted">
-                    <span className="mr-2 text-warn">△</span>Disagreement preserved: models differ
-                    by 6 points on source recency.
-                  </div>
-                </div>
-              )}
-              {tab === 'Evidence' && (
-                <div className="space-y-3">
-                  {[
-                    ['Supporting', 'Official publication confirms the underlying event.', '0.94'],
-                    ['Supporting', 'Independent reporting matches the date and scope.', '0.88'],
-                    ['Opposing', 'Earlier coverage omitted the final amendment.', '0.72'],
-                  ].map(([direction, text, relevance], i) => (
-                    <div
-                      key={`${direction}-${i}`}
-                      className="grid gap-3 border-b border-border py-4 sm:grid-cols-[100px_1fr_auto]"
-                    >
-                      <span
-                        className={cn(
-                          'text-[10px] font-semibold uppercase tracking-wider',
-                          direction === 'Opposing' ? 'text-warn' : 'text-accent',
-                        )}
-                      >
-                        {direction}
-                      </span>
-                      <p className="text-xs leading-6 text-muted">{text}</p>
-                      <span className="font-mono text-[10px] text-white/60">rel {relevance}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {tab === 'Attestation' && (
-                <div className="space-y-5 font-mono text-[11px]">
-                  {[
-                    ['claimHash', '0x7f3a…c91e'],
-                    ['evidenceRoot', '0xb881…19a4'],
-                    ['passportHash', '0x4da7…e12b'],
-                    ['chainId', '11155111'],
-                    ['transaction', '0x9c12…38af'],
-                  ].map(([label, value]) => (
-                    <div
-                      key={label}
-                      className="flex items-center justify-between gap-5 border-b border-border pb-4"
-                    >
-                      <span className="text-muted">{label}</span>
-                      <span className="text-white/80">{value}</span>
-                    </div>
-                  ))}
-                  <div className="inline-flex items-center gap-2 text-accent">
-                    <ShieldCheck size={14} />
-                    Integrity match confirmed
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </div>
-      {/* Replace with /public/images/Mesh/verification-preview.webp when the final product capture is ready. */}
-      <p className="mt-3 text-center font-mono text-[9px] uppercase tracking-[0.18em] text-muted/60">
-        Live product preview · screenshot-ready frame
+            Evidence locked
+          </motion.div>
+          <motion.div
+            aria-hidden
+            animate={reducedMotion ? undefined : { y: [0, 8, 0] }}
+            transition={{ duration: 5.2, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
+            className="absolute -right-4 bottom-1/4 hidden border border-border bg-background/90 px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-muted backdrop-blur md:block"
+          >
+            Models aligned
+          </motion.div>
+        </motion.div>
+      </motion.div>
+      <p className="mt-4 text-center font-mono text-[9px] uppercase tracking-[0.18em] text-muted/60">
+        Scroll to shift depth · move pointer to inspect
       </p>
     </motion.div>
   );
@@ -462,7 +411,7 @@ export function LandingExperience() {
             root stays connected in one public artifact.
           </p>
         </Reveal>
-        <div className="grid gap-5 xl:grid-cols-[1.35fr_0.65fr]">
+        <div className="gap-5 xl:grid-cols-[1.35fr_0.65fr]">
           <Reveal className="technical-panel overflow-hidden">
             <div className="flex flex-col gap-4 border-b border-border p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -526,12 +475,7 @@ export function LandingExperience() {
               ))}
             </div>
           </Reveal>
-          <div className="grid gap-5">
-            {/* Replace with /public/images/Mesh/evidence-passport.webp when the approved screenshot is available. */}
-            <ImagePlaceholder
-              label="Evidence Passport capture"
-              path="/images/Mesh/evidence-passport.webp"
-            />
+          {/* <div className="gap-5">
             <Reveal className="technical-panel p-5 font-mono text-[10px]">
               <div className="flex justify-between border-b border-border pb-3">
                 <span className="text-muted">chain</span>
@@ -546,7 +490,7 @@ export function LandingExperience() {
                 <span>2026-07-15T18:42Z</span>
               </div>
             </Reveal>
-          </div>
+          </div> */}
         </div>
       </section>
 
@@ -627,29 +571,24 @@ export function LandingExperience() {
       <section className="section-shell py-24 lg:py-36">
         <div className="grid items-center gap-14 lg:grid-cols-2 lg:gap-24">
           <Reveal className="order-2 lg:order-1">
-            <div className="technical-panel max-w-md overflow-hidden">
-              <div className="border-b border-border p-4 font-mono text-[10px] text-muted">
-                mesh_passport_bot · online
+            <div className="technical-panel relative mx-auto max-w-sm overflow-hidden bg-card/90 p-3 shadow-[0_30px_90px_-48px_rgba(34,229,154,0.35)]">
+              <div className="mb-3 flex items-center justify-between border-b border-border px-1 pb-3 font-mono text-[9px] uppercase tracking-[0.14em] text-muted">
+                <span>mesh_passport_bot</span>
+                <span className="inline-flex items-center gap-2 text-accent">
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent" /> Online
+                </span>
               </div>
-              <div className="space-y-4 p-5">
-                <div className="ml-auto max-w-[85%] bg-accent p-3 text-xs leading-5 text-background">
-                  Verify: “This policy took effect worldwide in 2024.”
-                </div>
-                <div className="max-w-[90%] border border-border bg-surface p-4 text-xs leading-6 text-muted">
-                  <span className="mb-2 block font-semibold text-white">
-                    Mesh verification · 63/100
-                  </span>
-                  Mixed evidence. The policy entered force in one region, but the worldwide framing
-                  is misleading.
-                </div>
+              <div className="relative max-h-[650px] overflow-hidden bg-background">
+                <Image
+                  src="/bot.png"
+                  alt="Mesh Telegram bot returning a Truth Score and Evidence Passport response"
+                  width={499}
+                  height={1080}
+                  sizes="(max-width: 768px) 84vw, 380px"
+                  className="h-auto w-full"
+                />
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background to-transparent" />
               </div>
-            </div>
-            {/* Replace with /public/images/Mesh/telegram-bot.webp when the final bot screenshot is available. */}
-            <div className="mt-4 max-w-md">
-              <ImagePlaceholder
-                label="Telegram bot capture"
-                path="/images/Mesh/telegram-bot.webp"
-              />
             </div>
           </Reveal>
           <Reveal className="order-1 lg:order-2">
@@ -758,45 +697,6 @@ export function LandingExperience() {
             ))}
           </div>
         </Reveal>
-      </section>
-
-      <section className="border-y border-border bg-card/30 py-24 lg:py-36">
-        <div className="section-shell grid gap-14 lg:grid-cols-[0.9fr_1.1fr] lg:gap-24">
-          <Reveal>
-            <p className="section-label">09 / Protocol surface</p>
-            <h2 className="display-section mt-5">
-              Trust infrastructure for applications and agents.
-            </h2>
-            <p className="section-copy mt-6">
-              The public REST API, verification pages, and embeddable badge are current MVP
-              surfaces. SDK and MCP support are planned integration layers.
-            </p>
-            <Link href="/about" className="button-secondary mt-8">
-              Explore the protocol <ArrowRight size={15} />
-            </Link>
-          </Reveal>
-          <Stagger className="grid gap-px bg-border sm:grid-cols-2">
-            {[
-              [Braces, 'REST API', 'Available'],
-              [Globe2, 'Public pages', 'Available'],
-              [WalletCards, 'Embeddable badge', 'Available'],
-              [MessageCircle, 'Telegram bot', 'Available'],
-              [Code2, 'TypeScript SDK', 'Planned'],
-              [Bot, 'MCP server', 'Planned'],
-            ].map(([Icon, title, status]) => {
-              const ItemIcon = Icon as typeof Braces;
-              return (
-                <StaggerItem key={String(title)} className="bg-background p-5">
-                  <ItemIcon size={17} className="text-accent" />
-                  <p className="mt-6 text-sm font-semibold">{String(title)}</p>
-                  <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.15em] text-muted">
-                    {String(status)}
-                  </p>
-                </StaggerItem>
-              );
-            })}
-          </Stagger>
-        </div>
       </section>
 
       <section className="section-shell py-24 lg:py-40">

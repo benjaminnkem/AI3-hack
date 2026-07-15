@@ -8,10 +8,10 @@ import { ExternalLink, Menu, Network, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const LINKS = [
-  { href: '/#product', label: 'Product' },
-  { href: '/#how-it-works', label: 'How it works' },
-  { href: '/#passport', label: 'Evidence Passport' },
-  { href: '/#protocol', label: 'Protocol' },
+  { href: '/', label: 'Home' },
+  { href: '/verify', label: 'Verify' },
+  { href: '/explore', label: 'Explore' },
+  { href: '/about', label: 'How it works' },
 ];
 
 const TELEGRAM_URL = 'https://t.me/mesh_passport_bot';
@@ -58,16 +58,29 @@ export function Navbar() {
 
         <div className="hidden items-center gap-1 md:flex">
           {LINKS.map((link) => {
+            const active =
+              link.href === '/'
+                ? pathname === '/'
+                : pathname === link.href || pathname?.startsWith(`${link.href}/`);
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className="relative px-2.5 py-2 text-xs text-muted transition hover:text-white"
+                className={cn(
+                  'relative px-2.5 py-2 text-xs transition hover:text-white',
+                  active
+                    ? 'text-white after:absolute after:inset-x-2.5 after:-bottom-3.5 after:h-px after:bg-accent'
+                    : 'text-muted',
+                )}
               >
                 {link.label}
               </Link>
             );
           })}
+          <span className="mx-1 hidden items-center gap-2 border-l border-border pl-4 font-mono text-[9px] uppercase tracking-[0.14em] text-muted xl:inline-flex">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent shadow-glow" />
+            Ethereum Sepolia · 11155111
+          </span>
           <a
             href={TELEGRAM_URL}
             target="_blank"
@@ -124,6 +137,9 @@ export function Navbar() {
                   </Link>
                 </motion.div>
               ))}
+              <div className="flex min-h-12 items-center justify-between border-b border-border px-1 py-3 font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
+                Network <span className="text-accent">Ethereum Sepolia · 11155111</span>
+              </div>
               <a
                 href={TELEGRAM_URL}
                 target="_blank"

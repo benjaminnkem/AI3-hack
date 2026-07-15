@@ -17,6 +17,9 @@ export function CustomCursor() {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (!cursor || !label || !finePointer || reducedMotion) return;
 
+    const root = document.documentElement;
+    root.classList.add('mesh-custom-cursor');
+
     let frame = 0;
     let visible = false;
     let x = -100;
@@ -60,6 +63,7 @@ export function CustomCursor() {
     frame = window.requestAnimationFrame(render);
 
     return () => {
+      root.classList.remove('mesh-custom-cursor');
       window.cancelAnimationFrame(frame);
       window.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerover', onOver);
