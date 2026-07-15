@@ -1,5 +1,7 @@
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { Bot, Context } from 'grammy';
-import { env, passportUrl } from './config';
+import type { Update } from 'grammy/types';
+import { env, passportUrl, webhookUrl } from './config';
 import { MeshPassportResult, verifyImage, verifyText, verifyUrl } from './mesh-api';
 
 const URL_RE = /https?:\/\/[^\s<>"')\]]+/i;
@@ -244,8 +246,96 @@ bot.catch((err) => {
   console.error('Bot error', err.error);
 });
 
+async function startPolling() {
+  console.log('Mode: long polling');
+  await bot.api.deleteWebhook({ drop_pending_updates: true });
+  await bot.start({
+    drop_pending_updates: true,
+    onStart: (info) => {
+      console.log(`Bot @${info.username} is online`);
+    },
+  });
+}
+
+function readJsonBody(req: IncomingMessage): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+    req.on('end', () => {
+      try {
+        const raw = Buffer.concat(chunks).toString('utf8');
+        resolve(raw ? JSON.parse(raw) : {});
+      } catch (error) {
+        reject(error);
+      }
+    });
+    req.on('error', reject);
+  });
+}
+
+function sendJson(res: ServerResponse, status: number, body: unknown) {
+  res.writeHead(status, { 'content-type': 'application/json' });
+  res.end(JSON.stringify(body));
+}
+
+async function startWebhook() {
+  const url = webhookUrl();
+  const path = env.webhookPath.startsWith('/') ? env.webhookPath : `/${env.webhookPath}`;
+  console.log('Mode: webhook (async, free-web-service friendly)');
+  console.log(`Webhook URL: ${url}`);
+
+  const server = createServer(async (req, res) => {
+    try {
+      const pathname = req.url?.split('?')[0] || '/';
+
+      if (req.method === 'GET' && (pathname === '/' || pathname === '/health')) {
+        sendJson(res, 200, { ok: true, service: 'mesh-telegram-bot', mode: 'webhook' });
+        return;
+      }
+
+      if (req.method === 'POST' && pathname === path) {
+        if (env.webhookSecret) {
+          const header = req.headers['x-telegram-bot-api-secret-token'];
+          if (header !== env.webhookSecret) {
+            sendJson(res, 401, { ok: false, message: 'Invalid webhook secret' });
+            return;
+          }
+        }
+
+        const update = (await readJsonBody(req)) as Update;
+        // Reply immediately so free-tier reverse proxies do not time out during long Mesh runs.
+        sendJson(res, 200, { ok: true });
+
+        void bot.handleUpdate(update).catch((error) => {
+          console.error('Failed to handle Telegram update', error);
+        });
+        return;
+      }
+
+      sendJson(res, 404, { ok: false, message: 'Not found' });
+    } catch (error) {
+      console.error('HTTP handler error', error);
+      if (!res.headersSent) {
+        sendJson(res, 500, { ok: false, message: 'Internal error' });
+      }
+    }
+  });
+
+  await new Promise<void>((resolve) => {
+    server.listen(env.port, () => resolve());
+  });
+
+  await bot.api.setWebhook(url, {
+    drop_pending_updates: true,
+    secret_token: env.webhookSecret || undefined,
+  });
+
+  const me = await bot.api.getMe();
+  console.log(`Bot @${me.username} is online on port ${env.port}`);
+}
+
 async function main() {
-  console.log('Mesh Telegram bot starting (long polling)...');
+  console.log('Mesh Telegram bot starting...');
   console.log(`API: ${env.apiBaseUrl}/${env.apiPrefix}`);
   console.log(`Web: ${env.webBaseUrl}`);
   if (env.allowedChatIds.size > 0) {
@@ -254,14 +344,11 @@ async function main() {
     console.log('Allowlist: open (all chats)');
   }
 
-  await bot.api.deleteWebhook({ drop_pending_updates: false });
-
-  await bot.start({
-    drop_pending_updates: true,
-    onStart: (info) => {
-      console.log(`Bot @${info.username} is online`);
-    },
-  });
+  if (env.mode === 'webhook') {
+    await startWebhook();
+  } else {
+    await startPolling();
+  }
 }
 
 main().catch((error) => {
