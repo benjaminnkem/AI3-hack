@@ -321,34 +321,17 @@ async function startWebhook() {
     }
   });
 
-  await new Promise<void>((resolve, reject) => {
-    server.once('error', reject);
-    server.listen(env.port, '0.0.0.0', () => resolve());
+  await new Promise<void>((resolve) => {
+    server.listen(env.port, () => resolve());
   });
-  console.log(`HTTP server listening on 0.0.0.0:${env.port}`);
 
-  try {
-    await bot.api.setWebhook(url, {
-      drop_pending_updates: true,
-      secret_token: env.webhookSecret || undefined,
-    });
-    console.log(`Webhook registered: ${url}`);
-  } catch (error) {
-    console.error('Failed to register Telegram webhook', error);
-    throw error;
-  }
+  await bot.api.setWebhook(url, {
+    drop_pending_updates: true,
+    secret_token: env.webhookSecret || undefined,
+  });
 
   const me = await bot.api.getMe();
-  const info = await bot.api.getWebhookInfo();
-  console.log(`Bot @${me.username} is online`);
-  console.log(
-    JSON.stringify({
-      event: 'telegram.webhook_info',
-      url: info.url,
-      pending: info.pending_update_count,
-      lastError: info.last_error_message ?? null,
-    }),
-  );
+  console.log(`Bot @${me.username} is online on port ${env.port}`);
 }
 
 async function main() {
