@@ -10,7 +10,7 @@
 
 ## 1. Executive Summary
 
-Mesh is a decentralized evidence-verification protocol and web application. A user submits a text claim, URL, social post URL, screenshot, or image. Mesh breaks the input into atomic factual claims, gathers current web evidence, asks two independent AI models through Gonka Router to assess the claims, preserves model disagreement, calculates a transparent 0–100 Truth Score, creates a portable Evidence Passport, hashes its important components, and anchors the resulting passport on Ethereum Sepolia.
+Mesh is a decentralized evidence-verification protocol and web application. A user submits a text claim, URL, social post URL, screenshot, or image. For image inputs, the implemented MVP extracts English text with Tesseract.js and sends that transcript—not a native image block—through the same claim pipeline. Mesh breaks the input into atomic factual claims, gathers current web evidence, asks two independent AI models through Gonka Router to assess the claims, preserves model disagreement, calculates a transparent 0–100 Truth Score, creates a portable Evidence Passport, hashes its important components, and anchors the resulting passport on Ethereum Sepolia.
 
 The product is not presented as an infallible “truth oracle.” It is decision-support infrastructure that makes an investigation reusable, transparent, tamper-evident, and independently auditable.
 
@@ -121,7 +121,7 @@ The following are intentionally out of scope:
 
 - User accounts, authentication, subscriptions, or payment plans.
 - Community voting, token incentives, staking, or governance.
-- A browser extension, Telegram bot, WhatsApp bot, or native mobile app.
+- A browser extension, WhatsApp bot, or native mobile app. The repository includes a thin Telegram client that calls the same REST API rather than reimplementing verification.
 - A full TypeScript SDK or public MCP server. The REST API and badge are the MVP integration surfaces.
 - Permanently storing complete claims, screenshots, or evidence on-chain.
 - Training or fine-tuning models.
@@ -157,7 +157,7 @@ A user wants to verify that the displayed passport matches the on-chain attestat
 
 - As a user, I can paste a text claim and receive an Evidence Passport.
 - As a user, I can paste a URL, including a social-post URL, and Mesh extracts its readable content before verification.
-- As a user, I can upload a PNG, JPEG, or WebP screenshot and Mesh extracts visible claims with Kimi vision.
+- As a user, I can upload a PNG, JPEG, or WebP screenshot and Mesh extracts English text with Tesseract.js before Kimi neutrally normalizes the OCR transcript through Gonka Router.
 - As a user, I can see each atomic claim separately.
 - As a user, I can see supporting and opposing evidence for each claim.
 - As a user, I can see publication dates, domains, excerpts, source quality, and relevance.
@@ -180,8 +180,9 @@ A user wants to verify that the displayed passport matches the on-chain attestat
 A Turborepo already exists with these applications:
 
 - `apps/web`
-- `apps/backend`
-- `apps/contract`
+- `apps/api`
+- `apps/contracts`
+- `apps/telegram-bot`
 
 Agents must inspect and preserve the existing package manager, lint rules, TypeScript configuration, and framework conventions. They must not rebuild or replace the monorepo unnecessarily.
 
@@ -256,9 +257,10 @@ For image input:
 
 1. Validate MIME type and file size.
 2. Store through the storage adapter.
-3. Send the image to Kimi through Gonka using an Anthropic-compatible image content block.
-4. Run a neutral visual-normalization prompt that extracts visible text, named entities, dates, numbers, logos, and a factual scene description without assigning a verdict.
-5. Feed that neutral transcript into later text stages. Kimi’s final investigator may also inspect the original image.
+3. Extract visible English text with Tesseract.js.
+4. Send the OCR transcript and media type to Kimi through Gonka as text. The current Router integration does not send a native image content block.
+5. Run a neutral normalization prompt that structures visible text, named entities, dates, numbers, logos, and a conservative scene description without assigning a verdict.
+6. Feed that neutral transcript into later text stages. The current investigators do not inspect the original image.
 
 ### Stage 2: Atomic claim extraction
 
@@ -308,7 +310,6 @@ Model: `moonshotai/Kimi-K2.6`
 Input:
 
 - Original normalized content.
-- Original image when applicable.
 - Neutral visual transcript when applicable.
 - Atomic claims.
 - Retrieved evidence.
@@ -1146,7 +1147,7 @@ The project is done only when:
 - A passport can be attested and independently checked.
 - `.env.example` files contain every variable with comments or documentation.
 - No real secrets are committed.
-- README/setup documentation explains local run, testing, Base deployment, backend deployment, and frontend deployment.
+- README/setup documentation explains local run, testing, contract deployment, backend deployment, and frontend deployment.
 - The coding agent reports exactly what it changed, which commands it ran, test results, environment variables the user must supply, and any external manual action still required.
 
 ---
@@ -1177,7 +1178,7 @@ Closing line:
 - TypeScript SDK.
 - MCP server for AI agents.
 - Browser extension.
-- Telegram and WhatsApp integrations.
+- Additional messaging integrations such as WhatsApp.
 - Signed publisher and expert attestations.
 - Claim clustering and reuse across semantically equivalent posts.
 - Evidence update alerts and passport version timelines.
