@@ -9,6 +9,7 @@ const LINKS = [
   { href: '/verify', label: 'Verify' },
   { href: '/explore', label: 'Explore' },
   { href: '/about', label: 'About' },
+  { href: '/video', label: 'Demo Video' },
 ];
 
 const TELEGRAM_URL = 'https://t.me/mesh_passport_bot';

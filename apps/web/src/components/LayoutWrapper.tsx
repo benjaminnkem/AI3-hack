@@ -12,6 +12,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
     pathname === '/verify' ||
     pathname === '/about' ||
     pathname === '/explore' ||
+    pathname === '/video' ||
     pathname?.startsWith('/passport/') ||
     pathname?.startsWith('/p/');
 
