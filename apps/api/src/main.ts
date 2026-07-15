@@ -1,4 +1,4 @@
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
@@ -12,7 +12,10 @@ import { ResponseEnvelopeInterceptor } from './common/interceptors/response-enve
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bodyParser: true });
   const config = app.get(ConfigService);
+  const logger = new Logger('Mesh-API');
+
   app.setGlobalPrefix(config.get('API_PREFIX', 'api/v1'));
+
   app.use(
     (
       req: { traceId?: string },
@@ -39,6 +42,7 @@ async function bootstrap(): Promise<void> {
   app.useGlobalInterceptors(new ResponseEnvelopeInterceptor());
   app.useStaticAssets(resolve(config.get('UPLOAD_DIR', './uploads')), { prefix: '/uploads/' });
   app.enableShutdownHooks();
+
   if (config.get('SWAGGER_ENABLED', true)) {
     const document = SwaggerModule.createDocument(
       app,
@@ -50,6 +54,8 @@ async function bootstrap(): Promise<void> {
     );
     SwaggerModule.setup('docs', app, document);
   }
+
   await app.listen(config.get('PORT', 4000));
+  logger.log(`🚀 Mesh API is running on port ${config.get('PORT', 4000)}`);
 }
 void bootstrap();

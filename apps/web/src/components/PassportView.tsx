@@ -23,6 +23,8 @@ import { ConsensusCard } from './ConsensusCard';
 import { ClaimCard } from './ClaimCard';
 import { BlockchainCard } from './BlockchainCard';
 import { scoreMeta, shortHash } from '@/lib/utils';
+import { verifyIntegrity } from '@/lib/api';
+import { ethers } from 'ethers';
 
 export function PassportView({ passport }: { passport: Passport }) {
   const [showDemo, setShowDemo] = useState(false);
@@ -80,7 +82,7 @@ export function PassportView({ passport }: { passport: Passport }) {
     downloadAnchor.remove();
   };
 
-  const runIntegrityCheck = () => {
+  const runIntegrityCheck = async () => {
     setVerifying(true);
     setIntegrityReport({
       ran: true,
@@ -88,59 +90,180 @@ export function PassportView({ passport }: { passport: Passport }) {
       steps: [
         { name: 'Checking schema version compliance (v1.0.0)', status: 'pending' },
         { name: 'Verifying off-chain payload structure', status: 'pending' },
-        { name: 'Recomputing claims cryptographic root', status: 'pending' },
+        { name: 'Recomputing cryptographic roots (claims & evidence)', status: 'pending' },
         { name: 'Comparing off-chain hash with on-chain attestation', status: 'pending' }
       ]
     });
 
-    setTimeout(() => {
+    let schemaOk = false;
+    let structureOk = false;
+    let rootsOk = false;
+    let chainOk = false;
+
+    // Step 1: Schema Compliance
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    if (passport.inputType && passport.publicId) {
+      schemaOk = true;
       setIntegrityReport(prev => {
         if (!prev) return null;
         return {
           ...prev,
-          steps: prev.steps.map((s, idx) => idx === 0 ? { ...s, status: 'success', detail: 'Schema compatibility OK' } : s)
+          steps: prev.steps.map((s, idx) => idx === 0 ? { ...s, status: 'success', detail: 'Schema compatibility: v1.0.0 (OK)' } : s)
         };
       });
-    }, 600);
-
-    setTimeout(() => {
+    } else {
       setIntegrityReport(prev => {
         if (!prev) return null;
         return {
           ...prev,
-          steps: prev.steps.map((s, idx) => idx === 1 ? { ...s, status: 'success', detail: 'Structure matches canonical format' } : s)
+          steps: prev.steps.map((s, idx) => idx === 0 ? { ...s, status: 'failed', detail: 'Missing schema identifiers.' } : s)
         };
       });
-    }, 1200);
+    }
 
-    setTimeout(() => {
+    // Step 2: Off-chain Payload Structure
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    if (passport.claims && passport.verdict && typeof passport.truthScore === 'number') {
+      structureOk = true;
       setIntegrityReport(prev => {
         if (!prev) return null;
         return {
           ...prev,
-          steps: prev.steps.map((s, idx) => idx === 2 ? { ...s, status: 'success', detail: `Keccak root: ${shortHash(passport.passportHash, 8)}` } : s)
+          steps: prev.steps.map((s, idx) => idx === 1 ? { ...s, status: 'success', detail: 'Payload matches canonical Evidence Passport format' } : s)
         };
       });
-    }, 1800);
-
-    setTimeout(() => {
+    } else {
       setIntegrityReport(prev => {
         if (!prev) return null;
-        const success = !!passport.attestation?.transactionHash;
         return {
-          ran: true,
-          valid: success,
-          steps: prev.steps.map((s, idx) => idx === 3 ? {
+          ...prev,
+          steps: prev.steps.map((s, idx) => idx === 1 ? { ...s, status: 'failed', detail: 'Missing essential passport payload keys.' } : s)
+        };
+      });
+    }
+
+    // Step 3: Recompute cryptographic roots (via backend api)
+    let backendReport: any = null;
+    try {
+      backendReport = await verifyIntegrity(passport.publicId);
+      rootsOk = !!backendReport?.valid;
+      setIntegrityReport(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          steps: prev.steps.map((s, idx) => idx === 2 ? {
             ...s,
-            status: success ? 'success' : 'failed',
-            detail: success 
-              ? `Attestation verified at block ${passport.attestation?.blockNumber} on Chain ID ${passport.attestation?.chainId}`
-              : 'Missing on-chain attestation receipt'
+            status: rootsOk ? 'success' : 'failed',
+            detail: rootsOk 
+              ? `Verification matches! Claims Root: ${shortHash(backendReport.stored?.claimsRoot || '', 6)}, Evidence Root: ${shortHash(backendReport.stored?.evidenceRoot || '', 6)}`
+              : `Root mismatch: Computed passport hash does not match stored hash.`
           } : s)
         };
       });
-      setVerifying(false);
-    }, 2400);
+    } catch (err: any) {
+      setIntegrityReport(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          steps: prev.steps.map((s, idx) => idx === 2 ? {
+            ...s,
+            status: 'failed',
+            detail: `Server-side validation failed: ${err.message}`
+          } : s)
+        };
+      });
+    }
+
+    // Step 4: Compare with on-chain attestation (via client-side direct contract query)
+    if (passport.attestation?.contractAddress && passport.attestation.transactionHash) {
+      try {
+        const MESH_ABI = [
+          "function exists(bytes32 passportHash) external view returns (bool)",
+          "function getAttestation(bytes32 passportHash) external view returns (tuple(bytes32 inputHash, bytes32 claimsRoot, bytes32 evidenceRoot, bytes32 kimiOutputHash, bytes32 minimaxOutputHash, bytes32 requestIdsHash, uint8 truthScore, uint32 verificationVersion, uint64 timestamp, address attestor))"
+        ];
+        const provider = new ethers.JsonRpcProvider('https://rpc.sepolia.org');
+        const contract = new ethers.Contract(passport.attestation.contractAddress, MESH_ABI, provider);
+        
+        const existsOnChain = await contract.exists(passport.passportHash);
+        if (existsOnChain) {
+          const att = await contract.getAttestation(passport.passportHash);
+          const truthScoreMatches = Number(att.truthScore) === passport.truthScore;
+          
+          if (truthScoreMatches) {
+            chainOk = true;
+            setIntegrityReport(prev => {
+              if (!prev) return null;
+              return {
+                ...prev,
+                valid: schemaOk && structureOk && rootsOk && chainOk,
+                steps: prev.steps.map((s, idx) => idx === 3 ? {
+                  ...s,
+                  status: 'success',
+                  detail: `On-chain receipt verified. Attestor: ${shortHash(att.attestor, 6)}, Truth Score matches contract: ${att.truthScore}/100.`
+                } : s)
+              };
+            });
+          } else {
+            setIntegrityReport(prev => {
+              if (!prev) return null;
+              return {
+                ...prev,
+                steps: prev.steps.map((s, idx) => idx === 3 ? {
+                  ...s,
+                  status: 'failed',
+                  detail: `On-chain data mismatch: Truth score in passport (${passport.truthScore}) does not match contract (${att.truthScore}).`
+                } : s)
+              };
+            });
+          }
+        } else {
+          setIntegrityReport(prev => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              steps: prev.steps.map((s, idx) => idx === 3 ? {
+                ...s,
+                status: 'failed',
+                detail: 'Passport hash not found in on-chain registry mapping.'
+              } : s)
+            };
+          });
+        }
+      } catch (err: any) {
+        setIntegrityReport(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            steps: prev.steps.map((s, idx) => idx === 3 ? {
+              ...s,
+              status: 'failed',
+              detail: `Browser RPC error verifying contract: ${err.message}`
+            } : s)
+          };
+        });
+      }
+    } else {
+      setIntegrityReport(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          steps: prev.steps.map((s, idx) => idx === 3 ? {
+            ...s,
+            status: 'failed',
+            detail: 'Unanchored: Passport does not contain on-chain attestation receipts.'
+          } : s)
+        };
+      });
+    }
+
+    setVerifying(false);
+    setIntegrityReport(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        valid: schemaOk && structureOk && rootsOk && chainOk
+      };
+    });
   };
 
   const demoClaims = [
@@ -365,7 +488,7 @@ export function PassportView({ passport }: { passport: Passport }) {
       </div>
 
       <div className="space-y-6 lg:col-span-1">
-        <BlockchainCard attestation={passport.attestation} passportHash={passport.passportHash} />
+        <BlockchainCard attestation={passport.attestation} passportHash={passport.passportHash} publicId={passport.publicId} />
 
         <div className="card p-6 space-y-4">
           <div className="flex items-center gap-2">

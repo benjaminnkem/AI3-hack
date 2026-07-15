@@ -23,9 +23,14 @@ export interface PassportModelResponse {
 }
 
 export interface Attestation {
+  status?: string;
+  network?: string;
+  contractAddress?: string;
   transactionHash: string | null;
   blockNumber: string | null;
   chainId: number | null;
+  attestor?: string | null;
+  explorerUrl?: string | null;
 }
 
 export interface Passport {

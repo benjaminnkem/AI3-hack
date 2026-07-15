@@ -1,13 +1,43 @@
 import axios from 'axios';
-import { Passport, VerifyInput } from './types';
+import { Passport, VerifyInput, InputType } from './types';
 
 const api = axios.create({
   baseURL:
     process.env.NEXT_PUBLIC_API_BASE_URL ??
     process.env.NEXT_PUBLIC_API_URL ??
-    'http://localhost:4001',
+    'http://localhost:4000',
   headers: { 'Content-Type': 'application/json' },
 });
+
+api.interceptors.response.use(
+  (response) => {
+    const body = response.data;
+    if (body && typeof body === 'object' && 'success' in body) {
+      if (body.success) {
+        return body.data;
+      } else {
+        const error = new Error(body.message || 'Request failed') as any;
+        error.code = body.code;
+        error.traceId = body.traceId;
+        error.details = body.details;
+        return Promise.reject(error);
+      }
+    }
+    return body;
+  },
+  (error) => {
+    if (error.response?.data && typeof error.response.data === 'object') {
+      const body = error.response.data;
+      const message = body.message || error.message;
+      const err = new Error(message) as any;
+      err.code = body.code;
+      err.traceId = body.traceId;
+      err.details = body.details;
+      return Promise.reject(err);
+    }
+    return Promise.reject(error);
+  },
+);
 
 export interface HistoryRow {
   id: string;
@@ -19,128 +49,140 @@ export interface HistoryRow {
 }
 
 function mapToPassport(data: any): Passport {
-  if (data.verification) {
-    const v = data.verification;
-    const modelResponses = (v.modelResponses || []).map((m: any) => ({
-      model: m.model,
-      score: typeof m.confidence === 'number' ? m.confidence : (m.score ?? 0),
-      reasoning: m.reasoning || '',
-      requestId: m.requestId || null,
-    }));
+  const input = data.input || {};
+  const consensus = data.modelConsensus || {};
 
-    const scores = modelResponses.map((m: any) => m.score);
-    const mean =
-      scores.length > 0 ? scores.reduce((a: number, b: number) => a + b, 0) / scores.length : 0;
-    const stdDev =
-      scores.length > 1
-        ? Math.sqrt(
-            scores.reduce((acc: number, x: number) => acc + (x - mean) ** 2, 0) / scores.length,
-          )
-        : 0;
-    const disagreement = stdDev > 20;
-    const agreement = 1 - Math.min(stdDev / 50, 1);
-    const decisiveness = Math.abs(mean - 50) / 50;
-    const confidence = agreement * (0.5 + 0.5 * decisiveness);
+  const claims = (data.claims || []).map((c: any) => ({
+    claim: c.text || c.claim || '',
+    confidence: typeof c.confidenceScore === 'number' ? c.confidenceScore : (c.confidence ?? 0),
+    status: c.verdict || c.status || 'unverifiable',
+  }));
 
-    let verdict = v.verdict;
-    if (!verdict) {
-      const truthScore = v.truthScore ?? 0;
-      if (disagreement && truthScore > 35 && truthScore < 65) verdict = 'mixed';
-      else if (truthScore >= 85) verdict = 'true';
-      else if (truthScore >= 65) verdict = 'likely_true';
-      else if (truthScore >= 45) verdict = 'mixed';
-      else if (truthScore >= 25) verdict = 'likely_false';
-      else if (truthScore >= 5) verdict = 'false';
-      else verdict = 'unverifiable';
-    }
-
-    return {
-      publicId: data.publicId,
-      verificationId: v.id,
-      inputType: v.inputType,
-      originalInput: v.originalInput,
-      truthScore: v.truthScore ?? 0,
-      verdict: verdict,
-      summary: v.summary || '',
-      claims: (v.claims || []).map((c: any) => ({
-        claim: c.claim,
-        confidence: c.confidence ?? 0,
-        status: c.status || 'unverifiable',
-      })),
-      consensus: {
-        truthScore: v.truthScore ?? 0,
-        verdict: verdict,
-        agreement: agreement,
-        confidence: confidence,
-        disagreement: disagreement,
-        summary: v.summary || '',
-      },
-      modelResponses: modelResponses,
-      requestIds: modelResponses.map((m: any) => m.requestId).filter(Boolean),
-      passportHash: data.passportHash,
-      attestation:
-        data.attestations && data.attestations.length > 0
-          ? {
-              transactionHash: data.attestations[0].transactionHash,
-              blockNumber: data.attestations[0].blockNumber,
-              chainId: data.attestations[0].chainId,
-            }
-          : null,
-      timestamp: data.createdAt,
-    };
+  const modelResponses: any[] = [];
+  if (consensus.kimi) {
+    modelResponses.push({
+      model: consensus.kimi.modelId || 'moonshotai/Kimi-K2.6',
+      score: consensus.kimi.score ?? 0,
+      reasoning: consensus.kimi.reasoningSummary || '',
+      requestId: consensus.kimi.gonkaResponseId || null,
+    });
   }
+  if (consensus.minimax) {
+    modelResponses.push({
+      model: consensus.minimax.modelId || 'MiniMaxAI/MiniMax-M2.7',
+      score: consensus.minimax.score ?? 0,
+      reasoning: consensus.minimax.reasoningSummary || '',
+      requestId: consensus.minimax.gonkaResponseId || null,
+    });
+  }
+
+  if (modelResponses.length === 0 && data.modelResponses) {
+    modelResponses.push(
+      ...(data.modelResponses || []).map((m: any) => ({
+        model: m.model,
+        score: m.score ?? m.confidence ?? 0,
+        reasoning: m.reasoning || '',
+        requestId: m.requestId || null,
+      })),
+    );
+  }
+
+  const attestation = data.attestation
+    ? {
+        status: data.attestation.status,
+        network: data.attestation.network,
+        contractAddress: data.attestation.contractAddress,
+        transactionHash: data.attestation.transactionHash || null,
+        blockNumber: data.attestation.blockNumber ? String(data.attestation.blockNumber) : null,
+        chainId: data.attestation.chainId || null,
+        attestor: data.attestation.attestor || null,
+        explorerUrl: data.attestation.explorerUrl || null,
+      }
+    : null;
 
   return {
     publicId: data.publicId,
-    verificationId: data.verificationId,
-    inputType: data.inputType || 'text',
-    originalInput: data.originalInput,
+    verificationId: data.verificationId || '',
+    inputType: (input.type || data.inputType || 'text').toLowerCase() as InputType,
+    originalInput: input.displayText || data.originalInput || '',
     truthScore: data.truthScore ?? 0,
-    verdict: data.verdict || 'unverifiable',
+    verdict: (data.verdict || 'unverifiable').toLowerCase(),
     summary: data.summary || '',
-    claims: (data.claims || []).map((c: any) => ({
-      claim: c.claim ?? c.text,
-      confidence: c.confidence ?? 0,
-      status: c.status || 'unverifiable',
-    })),
-    consensus: data.consensus || {
+    claims,
+    consensus: {
       truthScore: data.truthScore ?? 0,
-      verdict: data.verdict || 'unverifiable',
-      agreement: 1,
-      confidence: 1,
-      disagreement: false,
+      verdict: (data.verdict || 'unverifiable').toLowerCase(),
+      agreement: typeof consensus.agreementScore === 'number' ? consensus.agreementScore : 100,
+      confidence: typeof data.confidenceScore === 'number' ? data.confidenceScore : 100,
+      disagreement: (consensus.disagreements || []).length > 0,
       summary: data.summary || '',
     },
-    modelResponses: (data.modelResponses || []).map((m: any) => ({
-      model: m.model,
-      score: m.score ?? m.confidence ?? 0,
-      reasoning: m.reasoning || '',
-      requestId: m.requestId || null,
-    })),
-    requestIds: data.requestIds || [],
-    passportHash: data.passportHash,
-    attestation: data.attestation
-      ? {
-          transactionHash: data.attestation.transactionHash,
-          blockNumber: data.attestation.blockNumber,
-          chainId: data.attestation.chainId,
-        }
-      : null,
-    timestamp: data.timestamp || new Date().toISOString(),
+    modelResponses,
+    requestIds:
+      data.requestIds || (modelResponses.map((m) => m.requestId).filter(Boolean) as string[]),
+    passportHash: data.integrity?.passportHash || data.passportHash || '',
+    attestation,
+    timestamp: data.generatedAt || data.timestamp || new Date().toISOString(),
   };
 }
 
 export async function verify(input: VerifyInput): Promise<Passport> {
-  const { data } = await api.post('/api/verify', input);
-  return mapToPassport(data);
+  const backendInputType = input.inputType.toUpperCase();
+
+  if (backendInputType === 'IMAGE') {
+    const formData = new FormData();
+    formData.append('inputType', 'IMAGE');
+
+    // Parse base64 data url into blob for multipart upload
+    const response = await fetch(input.input);
+    const blob = await response.blob();
+    formData.append('file', blob, 'screenshot.png');
+
+    const res = (await api.post('/api/v1/verifications', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })) as any;
+    return mapToPassport(res);
+  } else if (backendInputType === 'URL') {
+    const res = (await api.post('/api/v1/verifications', {
+      inputType: 'URL',
+      url: input.input,
+    })) as any;
+    return mapToPassport(res);
+  } else {
+    // TEXT / TWEET
+    const res = (await api.post('/api/v1/verifications', {
+      inputType: 'TEXT',
+      content: input.input,
+    })) as any;
+    return mapToPassport(res);
+  }
 }
 
 export async function getPassport(publicId: string): Promise<Passport> {
-  const { data } = await api.get(`/api/passports/${publicId}`);
-  return mapToPassport(data);
+  const res = (await api.get(`/api/v1/passports/${publicId}`)) as any;
+  return mapToPassport(res);
 }
 
 export async function getHistory(): Promise<HistoryRow[]> {
-  const { data } = await api.get<HistoryRow[]>('/api/history');
-  return data;
+  const res = (await api.get('/api/v1/passports')) as any;
+  const items = res.items || [];
+  return items.map((item: any) => {
+    const input = item.input || {};
+    return {
+      id: item.verificationId || item.publicId,
+      inputType: (input.type || item.inputType || 'text').toLowerCase(),
+      status: 'completed',
+      truthScore: item.truthScore ?? null,
+      createdAt: item.generatedAt || item.timestamp || new Date().toISOString(),
+      passport: { publicId: item.publicId },
+    };
+  });
+}
+
+export async function verifyIntegrity(publicId: string): Promise<any> {
+  return (await api.get(`/api/v1/passports/${publicId}/integrity`)) as any;
+}
+
+export async function retryAttestation(publicId: string): Promise<any> {
+  return (await api.post(`/api/v1/passports/${publicId}/attest`)) as any;
 }

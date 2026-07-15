@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { getHistory } from '@/lib/api';
-import { FileText, Link as LinkIcon, Image as ImageIcon, Search, Filter } from 'lucide-react';
+import { FileText, Link as LinkIcon, Image as ImageIcon,  } from 'lucide-react';
 import { cn, scoreMeta } from '@/lib/utils';
 
 export default function ExplorePage() {
