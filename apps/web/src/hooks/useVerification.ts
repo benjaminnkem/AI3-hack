@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { verify } from '@/lib/api';
@@ -33,17 +33,14 @@ export function useVerification() {
     return () => window.clearTimeout(id);
   }, [isVerifying]);
 
-  const submit = useCallback(
-    (values: VerificationFormValues) => {
-      setIsSubmitting(true);
-      mutation.reset();
-      mutation.mutate({
-        inputType: values.inputType,
-        input: values.input,
-      });
-    },
-    [mutation.mutate, mutation.reset],
-  );
+  const submit = (values: VerificationFormValues) => {
+    setIsSubmitting(true);
+    mutation.reset();
+    mutation.mutate({
+      inputType: values.inputType,
+      input: values.input,
+    });
+  };
 
   return {
     submit,

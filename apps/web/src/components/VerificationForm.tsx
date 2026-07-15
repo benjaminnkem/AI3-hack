@@ -7,6 +7,7 @@ import { Link, FileText, Image as ImageIcon, X, Upload, ArrowRight, Loader2 } fr
 import { cn } from '@/lib/utils';
 import { useState, useRef, DragEvent, ChangeEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 
 type FormInputType = 'text' | 'url' | 'image';
 
@@ -292,9 +293,12 @@ export function VerificationForm({
               </div>
             ) : (
               <div className="relative flex flex-col items-center rounded-2xl border border-border bg-surface/50 p-4">
-                <img
+                <Image
                   src={imagePreview}
                   alt="Upload preview"
+                  width={720}
+                  height={480}
+                  unoptimized
                   className="mb-3 max-h-60 rounded-lg object-contain"
                 />
                 <div className="flex gap-3">
@@ -340,10 +344,7 @@ export function VerificationForm({
         ) : (
           <>
             Verify claim
-            <ArrowRight
-              size={16}
-              className="transition-transform group-hover:translate-x-0.5"
-            />
+            <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
           </>
         )}
       </button>

@@ -4,14 +4,17 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, ShieldCheck, X } from 'lucide-react';
+import { ExternalLink, Menu, Network, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const LINKS = [
-  { href: '/verify', label: 'Verify' },
-  { href: '/explore', label: 'Explore' },
-  { href: '/about', label: 'About' },
+  { href: '/#product', label: 'Product' },
+  { href: '/#how-it-works', label: 'How it works' },
+  { href: '/#passport', label: 'Evidence Passport' },
+  { href: '/#protocol', label: 'Protocol' },
 ];
+
+const TELEGRAM_URL = 'https://t.me/mesh_passport_bot';
 
 export function Navbar() {
   const pathname = usePathname();
@@ -41,51 +44,53 @@ export function Navbar() {
           : 'border-b border-transparent bg-transparent',
       )}
     >
-      <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+      <nav
+        className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3.5 sm:px-8 lg:px-10"
+        aria-label="Primary navigation"
+      >
         <Link href="/" className="group flex items-center gap-2.5 font-semibold tracking-tight">
-          <span className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 transition group-hover:border-accent/40 group-hover:bg-accent/15">
-            <ShieldCheck className="text-accent" size={18} />
-            <span className="absolute inset-0 rounded-xl bg-accent/20 opacity-0 blur-md transition group-hover:opacity-100" />
+          <span className="relative flex h-8 w-8 items-center justify-center border border-accent/25 bg-accent/10 transition group-hover:border-accent/60">
+            <Network className="text-accent" size={16} />
+            <span className="absolute inset-0 bg-accent/20 opacity-0 blur-md transition group-hover:opacity-100" />
           </span>
-          <span className="text-[15px]">Mesh</span>
+          <span className="text-[15px]">MESH</span>
         </Link>
 
         <div className="hidden items-center gap-1 md:flex">
           {LINKS.map((link) => {
-            const active = pathname === link.href || pathname?.startsWith(`${link.href}/`);
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={cn(
-                  'relative rounded-lg px-3.5 py-2 text-sm transition',
-                  active ? 'text-white' : 'text-muted hover:text-white',
-                )}
+                className="relative px-2.5 py-2 text-xs text-muted transition hover:text-white"
               >
-                {active && (
-                  <motion.span
-                    layoutId="nav-pill"
-                    className="absolute inset-0 rounded-lg bg-white/[0.06]"
-                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                  />
-                )}
-                <span className="relative z-10">{link.label}</span>
+                {link.label}
               </Link>
             );
           })}
+          <a
+            href={TELEGRAM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-2.5 py-2 text-xs text-muted transition hover:text-white"
+          >
+            Telegram Bot <ExternalLink size={11} />
+          </a>
           <Link
             href="/verify"
-            className="ml-3 inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-background shadow-glow transition hover:opacity-90"
+            className="ml-2 inline-flex min-h-10 items-center gap-2 bg-accent px-4 text-xs font-semibold text-background shadow-glow transition hover:opacity-90"
           >
-            Launch App
+            Try it now
           </Link>
         </div>
 
         <button
           type="button"
           aria-label={open ? 'Close menu' : 'Open menu'}
+          aria-expanded={open}
+          aria-controls="mobile-navigation"
           onClick={() => setOpen((v) => !v)}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card/60 text-white md:hidden"
+          className="inline-flex h-11 w-11 items-center justify-center border border-border bg-card/60 text-white md:hidden"
         >
           {open ? <X size={18} /> : <Menu size={18} />}
         </button>
@@ -100,7 +105,10 @@ export function Navbar() {
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden border-t border-border/60 bg-background/95 backdrop-blur-xl md:hidden"
           >
-            <div className="mx-auto flex max-w-6xl flex-col gap-1 px-6 py-4">
+            <div
+              id="mobile-navigation"
+              className="mx-auto flex max-w-7xl flex-col gap-1 px-5 py-4 sm:px-8"
+            >
               {LINKS.map((link, i) => (
                 <motion.div
                   key={link.href}
@@ -110,22 +118,25 @@ export function Navbar() {
                 >
                   <Link
                     href={link.href}
-                    className={cn(
-                      'block rounded-xl px-3 py-3 text-sm transition',
-                      pathname === link.href
-                        ? 'bg-white/[0.06] text-white'
-                        : 'text-muted hover:bg-white/[0.04] hover:text-white',
-                    )}
+                    className="block min-h-12 border-b border-border px-1 py-3 text-sm text-muted transition hover:text-white"
                   >
                     {link.label}
                   </Link>
                 </motion.div>
               ))}
+              <a
+                href={TELEGRAM_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex min-h-12 items-center justify-between border-b border-border px-1 py-3 text-sm text-muted"
+              >
+                Telegram Bot <ExternalLink size={13} />
+              </a>
               <Link
                 href="/verify"
-                className="mt-2 rounded-xl bg-accent px-4 py-3 text-center text-sm font-semibold text-background"
+                className="mt-3 bg-accent px-4 py-3.5 text-center text-sm font-semibold text-background"
               >
-                Launch App
+                Try it now
               </Link>
             </div>
           </motion.div>

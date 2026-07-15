@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import {
   AlertCircle,
@@ -205,7 +206,9 @@ export function PassportView({ passport }: { passport: Passport }) {
             <p className="mt-2 font-mono text-sm font-semibold sm:text-base">{passport.publicId}</p>
             <p className="mt-1 text-xs text-muted">
               Generated {new Date(passport.generatedAt).toLocaleString()}
-              {passport.verificationId ? ` · Verification ${shortHash(passport.verificationId, 4)}` : ''}
+              {passport.verificationId
+                ? ` · Verification ${shortHash(passport.verificationId, 4)}`
+                : ''}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -284,9 +287,12 @@ export function PassportView({ passport }: { passport: Passport }) {
         {passport.input.type === 'image' && passport.input.imageUrl ? (
           <div className="space-y-3">
             <div className="max-w-md overflow-hidden rounded-2xl border border-white/8 bg-black/20 p-3">
-              <img
+              <Image
                 src={passport.input.imageUrl}
                 alt="Verified input"
+                width={720}
+                height={480}
+                unoptimized
                 className="max-h-56 w-full rounded-xl object-contain"
               />
             </div>
@@ -294,7 +300,8 @@ export function PassportView({ passport }: { passport: Passport }) {
               <p className="text-sm leading-relaxed text-muted">{passport.input.displayText}</p>
             ) : null}
           </div>
-        ) : passport.input.type === 'url' && (passport.input.sourceUrl || passport.input.displayText) ? (
+        ) : passport.input.type === 'url' &&
+          (passport.input.sourceUrl || passport.input.displayText) ? (
           <div className="space-y-3">
             {passport.input.sourceUrl ? (
               <a

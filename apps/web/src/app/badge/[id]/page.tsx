@@ -4,7 +4,7 @@ import { use } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getPassport } from '@/lib/api';
 import { scoreMeta } from '@/lib/utils';
-import { ShieldCheck, ShieldAlert, Link2 } from 'lucide-react';
+import { ShieldCheck, ShieldAlert } from 'lucide-react';
 
 export default function BadgePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -16,7 +16,7 @@ export default function BadgePage({ params }: { params: Promise<{ id: string }> 
 
   if (isLoading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-[#0a0b0d] text-xs text-muted">
+      <div className="flex h-screen w-screen items-center justify-center bg-background text-xs text-muted">
         Loading Badge…
       </div>
     );
@@ -24,7 +24,7 @@ export default function BadgePage({ params }: { params: Promise<{ id: string }> 
 
   if (isError || !data) {
     return (
-      <div className="flex h-screen w-screen flex-col items-center justify-center gap-1 border border-danger/30 bg-[#0a0b0d] p-3 text-center">
+      <div className="flex h-screen w-screen flex-col items-center justify-center gap-1 border border-danger/30 bg-background p-3 text-center">
         <ShieldAlert size={16} className="text-danger" />
         <span className="text-[10px] font-semibold text-danger">Passport Not Found</span>
       </div>
@@ -47,15 +47,10 @@ export default function BadgePage({ params }: { params: Promise<{ id: string }> 
           Mesh Passport
         </div>
         <div>
-          <div
-            className="text-sm font-bold uppercase tracking-wider"
-            style={{ color: meta.color }}
-          >
+          <div className="text-sm font-bold uppercase tracking-wider" style={{ color: meta.color }}>
             {meta.label}
           </div>
-          <div className="text-[9px] text-muted mt-0.5 font-mono">
-            ID: {data.publicId}
-          </div>
+          <div className="text-[9px] text-muted mt-0.5 font-mono">ID: {data.publicId}</div>
         </div>
       </div>
 
