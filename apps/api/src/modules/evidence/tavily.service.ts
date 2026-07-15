@@ -10,6 +10,7 @@ import { tavily } from '@tavily/core';
 import { normalizeUrl } from './url-security';
 
 export const TAVILY_CLIENT = Symbol('TAVILY_CLIENT');
+
 export interface TavilyResult {
   title: string;
   url: string;
@@ -20,10 +21,12 @@ export interface TavilyResult {
   relevance: number;
   requestId: string | null;
 }
+
 interface Client {
   search(query: string, options: Record<string, unknown>): Promise<unknown>;
   extract(urls: string | string[], options?: Record<string, unknown>): Promise<unknown>;
 }
+
 type SearchWire = {
   requestId?: string;
   results?: Array<{
@@ -34,11 +37,13 @@ type SearchWire = {
     publishedDate?: string;
   }>;
 };
+
 type ExtractWire = { requestId?: string; results?: Array<{ url?: string; rawContent?: string }> };
 
 @Injectable()
 export class TavilyService {
   private readonly client: Client | null;
+
   constructor(
     private readonly config: ConfigService,
     @Optional() @Inject(TAVILY_CLIENT) injected?: Client,
@@ -46,6 +51,7 @@ export class TavilyService {
     const key = config.get<string>('TAVILY_API_KEY');
     this.client = injected ?? (key ? (tavily({ apiKey: key }) as Client) : null);
   }
+
   async extract(url: string): Promise<{ content: string; requestId: string | null }> {
     if (!this.client) throw new ServiceUnavailableException('Tavily is not configured');
     try {
@@ -61,6 +67,7 @@ export class TavilyService {
       throw new BadGatewayException('Tavily URL extraction failed');
     }
   }
+
   async search(query: string, dateSensitive: boolean): Promise<TavilyResult[]> {
     if (!this.client) throw new ServiceUnavailableException('Tavily is not configured');
     const wire = (await this.client.search(query, {
@@ -72,12 +79,15 @@ export class TavilyService {
       includeRawContent: false,
       timeout: 30,
     })) as SearchWire;
+
     return TavilyService.normalize(wire);
   }
+
   static normalize(wire: SearchWire): TavilyResult[] {
     const seenDomains = new Set<string>();
     const seenUrls = new Set<string>();
     const output: TavilyResult[] = [];
+
     for (const item of wire.results ?? []) {
       if (!item.url) continue;
       try {
@@ -100,6 +110,7 @@ export class TavilyService {
         continue;
       }
     }
+
     return output;
   }
 }

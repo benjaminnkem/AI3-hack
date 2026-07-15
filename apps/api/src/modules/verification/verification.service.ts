@@ -54,9 +54,12 @@ export class VerificationService {
   ): Promise<Record<string, unknown>> {
     this.validateInput(dto, file);
     const inputHash = this.preflightHash(dto, file);
+
     const previous = await this.latest(inputHash);
+
     if (previous && !dto.forceRefresh && this.reusable(previous))
       return this.publicPassport(previous);
+
     const verification = await this.verifications.save(
       this.verifications.create({
         inputType: dto.inputType,
@@ -72,24 +75,30 @@ export class VerificationService {
         completedAt: null,
       }),
     );
+
     try {
       const ingested = await this.ingestion.ingest(dto.inputType, dto.content, dto.url, file);
+
       Object.assign(verification, {
         originalText: ingested.originalText,
         sourceUrl: ingested.sourceUrl,
         imageUrl: ingested.imageUrl,
         normalizedContent: ingested.normalizedContent,
       });
+
       await this.verifications.save(verification);
       await this.saveAudits(verification.id, 'VISUAL_NORMALIZATION', ingested.audits, {});
       await this.stage(verification, 'CLAIM_EXTRACTION');
+
       const extraction = await this.claimExtraction.extract(ingested.normalizedContent);
+
       await this.saveAudit(
         verification.id,
         'CLAIM_EXTRACTION',
         extraction.audit,
         extraction.output,
       );
+
       const claimEntities = await this.claims.save(
         extraction.output.claims.map((item) =>
           this.claims.create({
@@ -103,6 +112,7 @@ export class VerificationService {
           }),
         ),
       );
+
       if (!claimEntities.length)
         return await this.completeNoClaims(
           verification,
@@ -110,18 +120,24 @@ export class VerificationService {
           extraction.audit,
           previous,
         );
+
       await this.stage(verification, 'EVIDENCE_RETRIEVAL');
+
       const evidenceEntities = await this.retrieveEvidence(claimEntities);
+
       await this.stage(verification, 'INVESTIGATION');
+
       const panel = await this.investigation.investigate(
         ingested.normalizedContent,
         claimEntities,
         evidenceEntities,
         ingested.imageBlock,
       );
+
       await this.saveAudit(verification.id, 'KIMI_INVESTIGATOR', panel.audits[0], panel.kimi);
       await this.saveAudit(verification.id, 'MINIMAX_INVESTIGATOR', panel.audits[1], panel.minimax);
       await this.stage(verification, 'ADVERSARIAL_REVIEW');
+
       const adversarial = await this.investigation.adversarial(
         ingested.normalizedContent,
         claimEntities,
@@ -129,12 +145,14 @@ export class VerificationService {
         panel.kimi,
         panel.minimax,
       );
+
       await this.saveAudit(
         verification.id,
         'ADVERSARIAL_REVIEW',
         adversarial.audit,
         adversarial.output,
       );
+
       const scored = this.applyScores(
         claimEntities,
         evidenceEntities,
@@ -142,16 +160,20 @@ export class VerificationService {
         panel.minimax,
         adversarial.output.challenges,
       );
+
       const overall = this.consensus.overall(
         scored.map(({ claim, score }) => ({ ...score, importance: claim.importance })),
       );
+
       await this.stage(verification, 'FINAL_NARRATIVE');
+
       const narrative = await this.investigation.narrative({
         immutableResult: overall,
         claims: scored.map(({ claim, score }) => ({ id: claim.id, text: claim.text, ...score })),
         challenges: adversarial.output.challenges,
       });
       await this.saveAudit(verification.id, 'FINAL_NARRATIVE', narrative.audit, narrative.output);
+
       for (const { claim, score } of scored) {
         claim.truthScore = score.truthScore;
         claim.confidenceScore = score.confidenceScore;
@@ -160,8 +182,11 @@ export class VerificationService {
           narrative.output.claimReasoning.find((item) => item.claimId === claim.id)
             ?.reasoningSummary ?? '';
       }
+
       await this.claims.save(claimEntities);
+
       await this.evidence.save(evidenceEntities);
+
       return await this.createPassport({
         verification,
         displayText: ingested.displayText,
@@ -186,7 +211,9 @@ export class VerificationService {
       verification.errorCode =
         error instanceof BadRequestException ? 'INVALID_INPUT' : 'PIPELINE_FAILED';
       verification.errorMessage = error instanceof Error ? error.message : 'Unknown failure';
+
       await this.verifications.save(verification);
+
       this.logger.error(
         `verification=${verification.id} stage=${verification.currentStage}`,
         error instanceof Error ? error.stack : String(error),
@@ -425,6 +452,7 @@ export class VerificationService {
     await this.verifications.save(args.verification);
     return this.publicPassport(await this.reloadPassport(passport.id));
   }
+
   private modelConsensus(
     kimi: InvestigatorOutput,
     minimax: InvestigatorOutput,
@@ -471,6 +499,7 @@ export class VerificationService {
       adversarialChallenges: challenges,
     };
   }
+
   private async completeNoClaims(
     verification: Verification,
     displayText: string,
@@ -492,6 +521,7 @@ export class VerificationService {
       previous,
     });
   }
+
   private async attest(passport: Passport, values: IntegrityValues) {
     const attestation = await this.attestations.save(
       this.attestations.create({
@@ -523,6 +553,7 @@ export class VerificationService {
     }
     await this.attestations.save(attestation);
   }
+
   private async saveAudit(
     verificationId: string,
     role: string,
@@ -552,6 +583,7 @@ export class VerificationService {
       }),
     );
   }
+
   private async saveAudits(
     verificationId: string,
     role: string,
@@ -560,10 +592,12 @@ export class VerificationService {
   ) {
     for (const audit of audits) await this.saveAudit(verificationId, role, audit, output);
   }
+
   private async stage(v: Verification, stage: string) {
     v.currentStage = stage;
     await this.verifications.save(v);
   }
+
   private preflightHash(dto: CreateVerificationDto, file?: Express.Multer.File) {
     const value =
       dto.inputType === InputType.TEXT
@@ -573,6 +607,7 @@ export class VerificationService {
           : file?.buffer.toString('base64');
     return this.integrity.hash({ type: dto.inputType, value });
   }
+
   private validateInput(dto: CreateVerificationDto, file?: Express.Multer.File) {
     if (dto.inputType === InputType.TEXT && !dto.content)
       throw new BadRequestException('content is required');
@@ -581,6 +616,7 @@ export class VerificationService {
     if (dto.inputType === InputType.IMAGE && !file)
       throw new BadRequestException('file is required');
   }
+
   private async latest(inputHash: string) {
     return this.passports.findOne({
       where: { verification: { inputHash, status: VerificationStatus.COMPLETED } },
@@ -588,12 +624,14 @@ export class VerificationService {
       relations: { verification: true, attestation: true },
     });
   }
+
   private reusable(passport: Passport) {
     return (
       passport.createdAt >
       new Date(Date.now() - this.config.get('PASSPORT_REUSE_WINDOW_MINUTES', 60) * 60000)
     );
   }
+
   private async reloadPassport(id: string) {
     const value = await this.passports.findOne({
       where: { id },
@@ -602,6 +640,7 @@ export class VerificationService {
     if (!value) throw new Error('Passport disappeared');
     return value;
   }
+
   private publicPassport(passport: Passport): Record<string, unknown> {
     const attestation = passport.attestation
       ? {
@@ -619,18 +658,22 @@ export class VerificationService {
             : null,
         }
       : null;
+
     return {
       ...passport.canonicalPayload,
       integrity: {
         ...(passport.canonicalPayload.integrity as object),
         passportHash: passport.passportHash,
       },
+
       attestation,
     };
   }
+
   private publicId() {
     return `pm_${randomBytes(9).toString('base64url')}`;
   }
+
   private flattenAudits(audits: GonkaResult[]): GonkaResult[] {
     return audits.flatMap((audit) => [...this.flattenAudits(audit.relatedAudits ?? []), audit]);
   }
