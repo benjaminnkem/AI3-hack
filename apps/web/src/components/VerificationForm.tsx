@@ -44,10 +44,12 @@ export function VerificationForm({
   onSubmit,
   loading,
   className,
+  defaultValues,
 }: {
   onSubmit: (values: VerificationFormValues) => void;
   loading: boolean;
   className?: string;
+  defaultValues?: Partial<VerificationFormValues>;
 }) {
   const {
     handleSubmit,
@@ -57,7 +59,10 @@ export function VerificationForm({
     trigger,
   } = useForm<VerificationFormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { inputType: 'text', input: '' },
+    defaultValues: {
+      inputType: defaultValues?.inputType ?? 'text',
+      input: defaultValues?.input ?? '',
+    },
   });
 
   const activeType = watch('inputType');
