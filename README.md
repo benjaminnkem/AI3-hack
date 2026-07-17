@@ -544,6 +544,7 @@ The root `.env.example` is only a directory map; runtime values belong in the re
 | `GONKA_BASE_URL`                | No                | No      | Official Router base                                         | `https://api.gonkarouter.io`                 |
 | `GONKA_API_KEY`                 | Yes outside tests | Yes     | Key from the [Gonka dashboard](https://gonkarouter.io/)      | empty                                        |
 | `GONKA_KIMI_MODEL`              | No/fixed          | No      | Exact Kimi ID                                                | `moonshotai/Kimi-K2.6`                       |
+| `GONKA_KIMI_FALLBACK_MODEL`     | No/fixed          | No      | Fallback when Gonka rejects Kimi for the current channel     | `MiniMaxAI/MiniMax-M2.7`                     |
 | `GONKA_MINIMAX_MODEL`           | No/fixed          | No      | Exact MiniMax ID                                             | `MiniMaxAI/MiniMax-M2.7`                     |
 | `GONKA_MAX_TOKENS`              | No                | No      | Global fallback budget                                       | `4096`                                       |
 | `GONKA_VISUAL_MAX_TOKENS`       | No                | No      | OCR normalization budget                                     | `1536`                                       |

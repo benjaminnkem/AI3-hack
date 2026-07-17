@@ -48,11 +48,13 @@ export class GonkaClient {
     if (maxTokens < 1024) throw new Error('Gonka max_tokens cannot be below 1024');
     const maxRetries = this.config.get<number>('GONKA_MAX_RETRIES', 2);
     const started = Date.now();
+    let activeModel = request.model;
+    let fallbackAttempted = false;
     for (let retry = 0; ; retry += 1) {
       try {
         const { message, requestId } = await this.transport.create(
           {
-            model: request.model,
+            model: activeModel,
             max_tokens: maxTokens,
             system: request.system,
             messages: [{ role: 'user', content: request.content }],
@@ -64,14 +66,14 @@ export class GonkaClient {
         this.logger.log(
           JSON.stringify({
             event: 'gonka.complete',
-            model: request.model,
+            model: activeModel,
             responseId: message.id,
             latencyMs: Date.now() - started,
             retry,
           }),
         );
         return {
-          modelId: request.model,
+          modelId: activeModel,
           text,
           responseId: message.id,
           providerRequestId: requestId ?? null,
@@ -86,12 +88,36 @@ export class GonkaClient {
         this.logger.warn(
           JSON.stringify({
             event: 'gonka.error',
-            model: request.model,
+            model: activeModel,
             status,
             detail,
             retry,
           }),
         );
+        const fallbackModel = this.config.get<string>(
+          'GONKA_KIMI_FALLBACK_MODEL',
+          'MiniMaxAI/MiniMax-M2.7',
+        );
+        if (
+          !fallbackAttempted &&
+          activeModel === this.config.get('GONKA_KIMI_MODEL', 'moonshotai/Kimi-K2.6') &&
+          fallbackModel &&
+          fallbackModel !== activeModel &&
+          status === 400 &&
+          /unsupported model|model not available/i.test(detail)
+        ) {
+          fallbackAttempted = true;
+          activeModel = fallbackModel;
+          this.logger.warn(
+            JSON.stringify({
+              event: 'gonka.model_fallback',
+              requestedModel: request.model,
+              fallbackModel,
+              reason: detail,
+            }),
+          );
+          continue;
+        }
         if ((status === 429 || (status !== undefined && status >= 500)) && retry < maxRetries) {
           await this.delay(this.retryDelay(error, retry));
           continue;
@@ -100,12 +126,12 @@ export class GonkaClient {
           throw new HttpException('Gonka authentication failed', HttpStatus.BAD_GATEWAY);
         if (status === 400 || status === 404)
           throw new HttpException(
-            `Gonka rejected model or request (${request.model})${detail ? `: ${detail}` : ''}`,
+            `Gonka rejected model or request (${activeModel})${detail ? `: ${detail}` : ''}`,
             HttpStatus.BAD_GATEWAY,
           );
         if (error instanceof HttpException) throw error;
         throw new HttpException(
-          `Gonka request failed for ${request.model}${detail ? `: ${detail}` : ''}`,
+          `Gonka request failed for ${activeModel}${detail ? `: ${detail}` : ''}`,
           status === 408 ? HttpStatus.GATEWAY_TIMEOUT : HttpStatus.BAD_GATEWAY,
         );
       }

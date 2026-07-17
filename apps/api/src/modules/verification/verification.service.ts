@@ -222,6 +222,7 @@ export class VerificationService {
         kimi: panel.kimi,
         minimax: panel.minimax,
         challenges: adversarial.output.challenges,
+        investigatorAudits: panel.audits,
         audits: [
           ...ingested.audits,
           extraction.audit,
@@ -378,6 +379,7 @@ export class VerificationService {
     kimi: InvestigatorOutput;
     minimax: InvestigatorOutput;
     challenges: unknown[];
+    investigatorAudits: GonkaResult[];
     audits: GonkaResult[];
     previous: Passport | null;
     report: (stage: VerificationProgressStage) => void;
@@ -453,7 +455,12 @@ export class VerificationService {
         sourceQualityScore: e.sourceQualityScore,
         contentHash: e.contentHash,
       })),
-      modelConsensus: this.modelConsensus(args.kimi, args.minimax, args.challenges, args.audits),
+      modelConsensus: this.modelConsensus(
+        args.kimi,
+        args.minimax,
+        args.challenges,
+        args.investigatorAudits,
+      ),
       integrity,
     };
     const passportHash = this.integrity.hash(payload);
@@ -494,7 +501,7 @@ export class VerificationService {
     kimi: InvestigatorOutput,
     minimax: InvestigatorOutput,
     challenges: unknown[],
-    audits: GonkaResult[],
+    investigatorAudits: GonkaResult[],
   ) {
     const k = kimi.claims.length
       ? kimi.claims.reduce((s, c) => s + c.supportProbability, 0) / kimi.claims.length
@@ -502,7 +509,8 @@ export class VerificationService {
     const m = minimax.claims.length
       ? minimax.claims.reduce((s, c) => s + c.supportProbability, 0) / minimax.claims.length
       : 50;
-    const audit = (model: string) => audits.find((a) => a.modelId === model);
+    const kimiAudit = investigatorAudits[0];
+    const minimaxAudit = investigatorAudits[1];
     return {
       agreementScore: Math.round(100 - Math.abs(k - m)),
       disagreements: kimi.claims
@@ -514,24 +522,27 @@ export class VerificationService {
         })
         .filter((value): value is string => value !== null),
       kimi: {
-        modelId: 'moonshotai/Kimi-K2.6',
+        // Keep the logical investigator slot stable for consumers. The audit
+        // still records the actual transport model used after any fallback.
+        modelId: this.config.get('GONKA_KIMI_MODEL', 'moonshotai/Kimi-K2.6'),
         score: Math.round(k),
         confidence: kimi.claims.length
           ? Math.round(kimi.claims.reduce((s, c) => s + c.confidence, 0) / kimi.claims.length)
           : 0,
         verdict: this.consensus.verdict(Math.round(k)),
         reasoningSummary: kimi.claims.map((c) => c.reasoningSummary).join(' '),
-        gonkaResponseId: audit('moonshotai/Kimi-K2.6')?.responseId ?? null,
+        gonkaResponseId: kimiAudit?.responseId ?? null,
       },
       minimax: {
-        modelId: 'MiniMaxAI/MiniMax-M2.7',
+        modelId:
+          minimaxAudit?.modelId ?? this.config.get('GONKA_MINIMAX_MODEL', 'MiniMaxAI/MiniMax-M2.7'),
         score: Math.round(m),
         confidence: minimax.claims.length
           ? Math.round(minimax.claims.reduce((s, c) => s + c.confidence, 0) / minimax.claims.length)
           : 0,
         verdict: this.consensus.verdict(Math.round(m)),
         reasoningSummary: minimax.claims.map((c) => c.reasoningSummary).join(' '),
-        gonkaResponseId: audit('MiniMaxAI/MiniMax-M2.7')?.responseId ?? null,
+        gonkaResponseId: minimaxAudit?.responseId ?? null,
       },
       adversarialChallenges: challenges,
     };
@@ -556,6 +567,7 @@ export class VerificationService {
       kimi: empty,
       minimax: empty,
       challenges: [],
+      investigatorAudits: [],
       audits: [audit],
       previous,
       report: report ?? (() => undefined),

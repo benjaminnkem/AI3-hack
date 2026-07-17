@@ -38,4 +38,36 @@ describe('GonkaClient', () => {
     expect(result.repaired).toBe(true);
     expect(create).toHaveBeenCalledTimes(2);
   });
+  it('falls back once when Gonka temporarily exposes only MiniMax', async () => {
+    const unsupported = Object.assign(
+      new Error(
+        'upstream error: {"error":{"message":"unsupported model moonshotai/Kimi-K2.6; supported models: MiniMaxAI/MiniMax-M2.7"}}',
+      ),
+      { status: 400 },
+    );
+    const create = jest
+      .fn()
+      .mockRejectedValueOnce(unsupported)
+      .mockResolvedValueOnce({ message: message('{"ok":true}', 'msg_fallback') });
+    const client = new GonkaClient(
+      new ConfigService({
+        NODE_ENV: 'test',
+        GONKA_API_KEY: 'test',
+        GONKA_KIMI_MODEL: 'moonshotai/Kimi-K2.6',
+        GONKA_KIMI_FALLBACK_MODEL: 'MiniMaxAI/MiniMax-M2.7',
+        GONKA_MAX_RETRIES: 0,
+      }),
+      { create } as GonkaTransport,
+    );
+    const result = await client.complete({
+      model: 'moonshotai/Kimi-K2.6',
+      system: 's',
+      content: [{ type: 'text', text: 'x' }],
+    });
+    expect(result.modelId).toBe('MiniMaxAI/MiniMax-M2.7');
+    expect(create.mock.calls.map(([params]) => params.model)).toEqual([
+      'moonshotai/Kimi-K2.6',
+      'MiniMaxAI/MiniMax-M2.7',
+    ]);
+  });
 });
