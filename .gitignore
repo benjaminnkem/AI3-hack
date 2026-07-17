@@ -6,5 +6,5 @@ coverage
 artifacts
 cache
 typechain-types
-.env
 *.log
+config.bat

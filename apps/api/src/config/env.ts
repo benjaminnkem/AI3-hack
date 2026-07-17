@@ -11,6 +11,9 @@ export const envSchema = z
     GONKA_BASE_URL: z.string().url().default('https://api.gonkarouter.io'),
     GONKA_API_KEY: z.string().optional(),
     GONKA_KIMI_MODEL: z.literal('moonshotai/Kimi-K2.6').default('moonshotai/Kimi-K2.6'),
+    GONKA_KIMI_FALLBACK_MODEL: z
+      .literal('MiniMaxAI/MiniMax-M2.7')
+      .default('MiniMaxAI/MiniMax-M2.7'),
     GONKA_MINIMAX_MODEL: z.literal('MiniMaxAI/MiniMax-M2.7').default('MiniMaxAI/MiniMax-M2.7'),
     GONKA_MAX_TOKENS: z.coerce.number().int().min(1024).default(4096),
     GONKA_VISUAL_MAX_TOKENS: z.coerce.number().int().min(1024).default(1536),
