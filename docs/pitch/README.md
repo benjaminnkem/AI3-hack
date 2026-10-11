@@ -1,40 +1,25 @@
 # Mesh incubation pitch deck
 
-An editable 24-slide PowerPoint for SIMAN LABS. It opens with Mesh and the existing MVP, then presents F01–F17 one capability per slide. A dedicated gate slide appears immediately before F13–F17. The deck contains no timeline or traction claims.
+A 14-slide deck for the SIMAN LABS incubation meeting. It leads with the working product (real screenshots and a real passport), then trust, then a one-slide roadmap, then the incubation ask.
 
 ## Files
 
-- `mesh-incubation-deck.pptx` — editable deck
-- `mesh-incubation-deck.pdf` — presentation and sharing copy
-- `previews/contact-sheet.png` and `previews/slide-01.png` through `slide-24.png` — visual QA previews
-- `slide-text.md` — extracted text for accessibility and content QA
-- `build-deck.cjs` — PptxGenJS source
-- `assets/` — two generated editorial images and Mesh's existing brand visual
+- `deck/index.html`: **source of truth**. Present it in a browser (arrow keys / click; `#7` jumps to slide 7). Edit text here.
+- `mesh-incubation-deck.pdf`: presenting / sharing copy (best fidelity).
+- `mesh-incubation-deck.pptx`: slide images with speaker notes, for PowerPoint / Google Slides. **Not text-editable.**
+- `speaker-notes.md`: talk track per slide (also embedded in the PPTX notes).
+- `previews/`: per-slide PNGs.
+- `assets/`: editorial images and real screenshots of the running app (`shot-*.png`). `fonts/`: Space Grotesk, Inter, JetBrains Mono.
+- `build-deck.cjs`: renders slides with headless Chrome and builds PDF/PPTX/notes.
 
 ## Rebuild
 
-From the repository root:
-
 ```sh
-node docs/pitch/build-deck.cjs
-FONTCONFIG_FILE=/opt/homebrew/etc/fonts/fonts.conf python .agents/skills/pptx/scripts/office/soffice.py --headless --convert-to pdf --outdir docs/pitch docs/pitch/mesh-incubation-deck.pptx
-pdftoppm -png -r 100 docs/pitch/mesh-incubation-deck.pdf docs/pitch/previews/slide
+node docs/pitch/build-deck.cjs   # needs Google Chrome (or set CHROME_BIN)
 ```
-
-The editable deck uses **Space Grotesk** for display type and **Avenir Next** for body type; both are installed on this Mac. The `FONTCONFIG_FILE` setting is required for the bundled LibreOffice PDF export to use these fonts rather than substitute them.
 
 ## Content boundaries
 
-- The MVP slide describes verified existing product behavior. The F01–F12 slides are labelled **Proposed**. The F13–F17 slides are labelled **Gated pilot**.
-- The feature scenes are concept visuals, not screenshots of completed features. The Mesh landing image is an existing repository brand asset.
-- The deck distinguishes evidence assessment, source provenance, cryptographic integrity, private proof and factual correctness.
-- The F12 concept visual contains no benchmark numbers. The F09 slide presents “Before You Share” as a proposed wedge that still needs owner confirmation.
-
-## Generated image prompts
-
-Built-in imagegen tool, without an API key:
-
-1. `research-editorial.png`: wide cinematic editorial photograph of a researcher examining a claim and multiple sources at a dark desk, Mesh emerald accents, left-side negative space, no text or logos.
-2. `network-sculpture.png`: wide abstract glass-fiber evidence network in deep forest darkness, luminous emerald connections around a central node, left-side negative space, no text or logos.
-
-The external visual references supplied by the owner informed typography, contrast and pacing; their image files are not embedded in the deck.
+- Slides 3–11 describe shipped behaviour. Slide 12 is a **proposed** roadmap (F01–F17 condensed); slide 13's ask is a draft to confirm.
+- Screenshots come from a local run against real Gonka, Tavily and Sepolia (passport `pm_gUTTfg0wdeKA`, tx confirmed in Sepolia block 11,891,382). Model names are intentionally not shown on slides.
+- No traction, user or timeline claims are made.

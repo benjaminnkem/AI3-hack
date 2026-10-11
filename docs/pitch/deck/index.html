@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mesh Incubation Deck</title>
+<style>
+@font-face{font-family:"Space Grotesk";src:url("../fonts/SpaceGrotesk.ttf");font-weight:300 700}
+@font-face{font-family:"Inter";src:url("../fonts/Inter.ttf");font-weight:100 900}
+@font-face{font-family:"JetBrains Mono";src:url("../fonts/JetBrainsMono.ttf");font-weight:100 800}
+:root{
+  --dark:#07110f; --black:#030908; --forest:#10231d; --panel:#0d1b17; --line:#244337;
+  --green:#35e3a0; --lime:#b8f8d9; --cream:#f2f4ee; --white:#fff; --muted:#9bb4a9;
+  --ink:#10231e; --gray:#596b62; --soft:#dce9e1; --yellow:#f2c66a; --red:#f49c8a; --blue:#a3c8ff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#000;height:100%}
+body{font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.deck{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.slide{position:absolute;width:1920px;height:1080px;overflow:hidden;background:var(--dark);color:var(--white);
+  transform-origin:center center;display:none}
+.slide.on{display:block}
+.slide.light{background:var(--cream);color:var(--ink)}
+.slide.black{background:var(--black)}
+/* chrome */
+.foot{position:absolute;left:96px;right:96px;bottom:44px;display:flex;justify-content:space-between;
+  font:600 17px "JetBrains Mono",monospace;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+.light .foot{color:var(--gray)}
+.eyebrow{font:600 20px "JetBrains Mono",monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--green)}
+.light .eyebrow{color:#0b8a5e}
+h1{font:700 92px/1.02 "Space Grotesk",sans-serif;letter-spacing:-.025em}
+h2{font:700 76px/1.04 "Space Grotesk",sans-serif;letter-spacing:-.022em}
+h3{font:700 32px/1.15 "Space Grotesk",sans-serif;letter-spacing:-.01em}
+.lede{font:400 31px/1.45 Inter,sans-serif;color:var(--muted)}
+.light .lede{color:var(--gray)}
+.mono{font-family:"JetBrains Mono",monospace}
+.g{color:var(--green)} .light .g{color:#0b8a5e}
+.tag{display:inline-block;font:600 17px "JetBrains Mono",monospace;letter-spacing:.12em;text-transform:uppercase;
+  padding:9px 18px;border-radius:99px;background:var(--forest);color:var(--lime);border:1px solid var(--line)}
+.tag.warn{color:var(--yellow);border-color:#5a4a22;background:#231d0d}
+.light .tag{background:var(--white);color:var(--ink);border-color:var(--soft)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:34px}
+.light .card{background:var(--white);border-color:var(--soft)}
+.card p{font:400 24px/1.45 Inter;color:var(--muted);margin-top:12px}
+.light .card p{color:var(--gray)}
+.pos{position:absolute}
+.shot{position:absolute;border-radius:18px;border:1px solid var(--line);box-shadow:0 40px 90px rgba(0,0,0,.55);overflow:hidden;background:#0b1210}
+.shot img{display:block;width:100%;height:100%;object-fit:cover}
+.cap{position:absolute;font:600 17px "JetBrains Mono",monospace;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+.rule{height:1px;background:var(--line);position:absolute}
+.light .rule{background:var(--soft)}
+.num{font:600 20px "JetBrains Mono",monospace;color:var(--green);letter-spacing:.1em}
+.chips{display:flex;gap:14px;flex-wrap:wrap}
+ul.tick{list-style:none}
+ul.tick li{font:400 27px/1.4 Inter;color:var(--soft);padding-left:40px;position:relative;margin-bottom:16px}
+ul.tick li:before{content:"";position:absolute;left:0;top:13px;width:16px;height:16px;border-radius:50%;background:var(--green)}
+ul.cross li:before{background:none;border:2px solid var(--red);top:12px;width:14px;height:14px}
+.big .card p{font-size:28px;line-height:1.5}
+.big .card h3{font-size:36px}
+.pill-bar{height:16px;border-radius:9px;background:#1a2f27;overflow:hidden}
+.pill-bar i{display:block;height:100%;border-radius:9px}
+@media print{
+  @page{size:1920px 1080px;margin:0}
+  html,body{background:none;height:auto}
+  .deck{position:static;display:block;overflow:visible}
+  .slide{display:block!important;position:relative;transform:none!important;page-break-after:always;break-after:page}
+}
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+<!-- 1 COVER -->
+<section class="slide black on" data-notes="Open with the one-line promise: check before you trust. Mesh turns any digital claim: text, a link, a screenshot, into an Evidence Passport anyone can inspect. Everything you'll see tonight is a working product, not a mockup. We're here as SIMAN LABS incubation candidates.">
+  <img src="../assets/research-editorial.png" class="pos" style="inset:0;width:1920px;height:1080px;object-fit:cover" alt="">
+  <div class="pos" style="inset:0;background:linear-gradient(90deg,#030908 0%,#030908 38%,rgba(3,9,8,.82) 56%,rgba(3,9,8,.1) 100%)"></div>
+  <div class="pos eyebrow" style="left:110px;top:92px">Mesh &nbsp;×&nbsp; SIMAN LABS</div>
+  <h1 class="pos" style="left:104px;top:300px;font-size:150px;line-height:.98">Check before<br>you trust.</h1>
+  <p class="pos lede" style="left:110px;top:668px;width:840px;color:var(--soft)">An Evidence Passport for every digital claim: live sources, independent AI assessments, and a tamper-evident receipt.</p>
+  <div class="pos" style="left:110px;top:900px"><span class="tag">Working product · Live on Ethereum Sepolia</span></div>
+  <div class="pos mono" style="right:96px;bottom:56px;font-size:17px;letter-spacing:.14em;color:var(--muted)">MESH / 2026</div>
+</section>
+
+<!-- 2 PROBLEM -->
+<section class="slide light" data-notes="The problem isn't a lack of fact-checks, it's that fact-checks don't travel. A claim gets copied, cropped, translated and forwarded; the source and date fall away. Three failures: the investigation restarts every time, a single AI answer hides its own blind spots, and any published result can be quietly edited or removed.">
+  <div class="pos eyebrow" style="left:110px;top:92px">01 / The problem</div>
+  <h2 class="pos" style="left:104px;top:170px;width:1000px">Claims travel faster than evidence.</h2>
+  <p class="pos lede" style="left:110px;top:470px;width:760px">A post becomes a screenshot becomes a forward. By the time someone acts on it, the source, the date and the uncertainty are gone.</p>
+  <div class="pos" style="left:1010px;top:130px;width:810px;display:flex;flex-direction:column;gap:26px">
+    <div class="card" style="display:flex;gap:30px;align-items:flex-start"><div class="num" style="color:#0b8a5e;font-size:30px;padding-top:6px">01</div><div><h3>Investigations don't travel</h3><p>Every platform re-checks the same claim from scratch. Nothing portable follows it.</p></div></div>
+    <div class="card" style="display:flex;gap:30px;align-items:flex-start"><div class="num" style="color:#0b8a5e;font-size:30px;padding-top:6px">02</div><div><h3>One model, one blind spot</h3><p>A single AI summary hides disagreement and sounds more certain than the evidence allows.</p></div></div>
+    <div class="card" style="display:flex;gap:30px;align-items:flex-start"><div class="num" style="color:#0b8a5e;font-size:30px;padding-top:6px">03</div><div><h3>Results can be quietly changed</h3><p>A verdict on a website can be edited or deleted. There's no receipt to check it against.</p></div></div>
+  </div>
+  <div class="pos" style="left:110px;top:770px;width:760px;background:var(--ink);color:#fff;border-radius:22px;padding:34px 40px;font:700 34px/1.25 'Space Grotesk'">Mesh reconnects the claim to its evidence, and makes the result checkable.</div>
+  <div class="foot"><span>Mesh / Incubation</span><span>02 / 14</span></div>
+</section>
+
+<!-- 3 PASSPORT -->
+<section class="slide" data-notes="The core idea: an Evidence Passport. It's a portable, public record of one investigation: the atomic claims, the evidence on each side with source quality, what the independent assessments said and where they disagreed, the challenges raised against the leading conclusion, a transparent 0–100 score, and cryptographic hashes anchored on Ethereum Sepolia. The numbers on the right are from a real passport we generated today.">
+  <div class="pos eyebrow" style="left:110px;top:92px">02 / The solution</div>
+  <h2 class="pos" style="left:104px;top:170px;width:820px">One claim in.<br>One passport out.</h2>
+  <p class="pos lede" style="left:110px;top:470px;width:760px">Paste text, a link or a screenshot. Mesh returns a public, portable record of the investigation, not just a verdict.</p>
+  <div class="pos chips" style="left:110px;top:780px;width:760px"><span class="tag">Text</span><span class="tag">URL / social post</span><span class="tag">Screenshot (OCR)</span></div>
+  <div class="pos card" style="left:1000px;top:110px;width:820px;height:830px;padding:0;overflow:hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:30px 38px;border-bottom:1px solid var(--line)">
+      <div><div class="eyebrow" style="font-size:16px">Evidence Passport</div><div class="mono" style="font-size:24px;margin-top:8px">pm_gUTTfg0wdeKA · v1</div></div>
+      <span class="tag" style="color:var(--yellow);border-color:#5a4a22;background:#231d0d">Unverified · 65</span>
+    </div>
+    <div style="padding:10px 38px">
+      <div class="prow"><b>4</b><span>atomic claims, weighted by importance</span></div>
+      <div class="prow"><b>16</b><span>evidence items: supporting, opposing, neutral</span></div>
+      <div class="prow"><b>2</b><span>independent assessments, with disagreement recorded</span></div>
+      <div class="prow"><b>1</b><span>adversarial challenge, resolved and explained</span></div>
+      <div class="prow"><b>0–100</b><span>deterministic Truth Score + confidence</span></div>
+      <div class="prow" style="border:0"><b>⛓</b><span>claims root · evidence root · passport hash · Sepolia receipt</span></div>
+    </div>
+  </div>
+  <style>.prow{display:flex;align-items:center;gap:30px;padding:24px 0;border-bottom:1px solid var(--line)}.prow b{font:700 44px "Space Grotesk";color:var(--green);min-width:130px}.prow span{font:400 25px/1.35 Inter;color:var(--soft)}</style>
+  <div class="cap" style="left:1000px;top:970px">Figures from a real passport generated during prep</div>
+  <div class="foot"><span>Mesh / Incubation</span><span>03 / 14</span></div>
+</section>
+
+<!-- 4 HOW IT WORKS -->
+<section class="slide" data-notes="Seven stages, and the app streams real progress as it goes. Walk left to right: input is normalized and hashed, URLs go through SSRF checks and Tavily Extract, images through OCR. A model pulls out atomic claims. Tavily retrieves live evidence per claim, including a contradiction-oriented query. Two investigators assess in parallel, a third pass attacks the leading conclusion, and then plain deterministic code computes the score, the models never get to choose the number.">
+  <div class="pos eyebrow" style="left:110px;top:92px">03 / How it works</div>
+  <h2 class="pos" style="left:104px;top:160px;width:1500px">Seven stages. The score is code, not vibes.</h2>
+  <div class="pos" style="left:96px;top:380px;width:1728px;display:grid;grid-template-columns:repeat(7,1fr);gap:16px">
+    <div class="step"><div class="num">01</div><h3>Normalize &amp; hash</h3><p>Validate input, block unsafe URLs (HTTP(S) only, DNS + private-range checks), hash it.</p><span class="tag">App</span></div>
+    <div class="step"><div class="num">02</div><h3>Read</h3><p>URLs read with Tavily Extract. Screenshots go through Tesseract OCR.</p><span class="tag">Tavily · OCR</span></div>
+    <div class="step"><div class="num">03</div><h3>Extract claims</h3><p>Up to five atomic, checkable factual claims, each weighted.</p><span class="tag">Gonka</span></div>
+    <div class="step"><div class="num">04</div><h3>Find evidence</h3><p>Live, claim-specific search plus a query designed to find contradictions.</p><span class="tag">Tavily</span></div>
+    <div class="step"><div class="num">05</div><h3>Investigate</h3><p>Two independent investigators assess the same evidence in parallel.</p><span class="tag">Gonka</span></div>
+    <div class="step"><div class="num">06</div><h3>Challenge</h3><p>An adversarial pass tries to disprove the leading conclusion.</p><span class="tag">Gonka</span></div>
+    <div class="step" style="background:var(--forest);border-color:var(--green)"><div class="num">07</div><h3>Score &amp; seal</h3><p>Deterministic score, Merkle roots, then a Sepolia attestation.</p><span class="tag">Code · Chain</span></div>
+  </div>
+  <style>.step{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:26px 22px;height:470px;display:flex;flex-direction:column;gap:14px}.step h3{font-size:29px}.step p{font:400 21px/1.4 Inter;color:var(--muted);flex:1}.step .tag{align-self:flex-start;font-size:14px;padding:7px 14px}</style>
+  <div class="pos lede" style="left:110px;top:900px;width:1500px;font-size:26px">Every stage reports progress live to the UI. Every AI call goes through <span class="g">Gonka Router</span>; live evidence comes from <span class="g">Tavily</span>.</div>
+  <div class="foot"><span>Mesh / Incubation</span><span>04 / 14</span></div>
+</section>
+
+<!-- 5 LIVE PRODUCT -->
+<section class="slide" data-notes="This is the product running locally on my machine tonight. The verify screen takes text, a URL or an image. The right-hand panel states exactly what you get back. It's a Next.js app on top of a NestJS API with Postgres; the same pipeline also powers the Telegram bot.">
+  <div class="pos eyebrow" style="left:110px;top:92px">04 / The product</div>
+  <h2 class="pos" style="left:104px;top:170px;width:760px">Working today. Not a mockup.</h2>
+  <p class="pos lede" style="left:110px;top:440px;width:690px">Next.js app, NestJS API, PostgreSQL, a Solidity registry on Sepolia, and a Telegram bot, all on one verification pipeline.</p>
+  <ul class="tick pos" style="left:110px;top:700px;width:700px">
+    <li>Text, URL or screenshot in</li>
+    <li>Streaming progress, stage by stage</li>
+    <li>Public passport page, badge and JSON</li>
+  </ul>
+  <div class="shot" style="left:940px;top:100px;width:880px;height:664px"><img src="../assets/shot-verify.png" alt="Mesh verify screen"></div>
+  <div class="cap" style="left:940px;top:792px">Screenshot of the running app · Verify screen</div>
+  <div class="foot"><span>Mesh / Incubation</span><span>05 / 14</span></div>
+</section>
+
+<!-- 6 REAL PASSPORT -->
+<section class="slide" data-notes="A real run from tonight. The claim was: 'The Great Wall of China is the only man-made structure visible from space with the naked eye.' Mesh split it into four atomic claims. This one, the 'only' claim, came back CONTRADICTED, 0 out of 100, with four independent opposing sources, each shown with its relevance and quality score. Note the whole passport still reads UNVERIFIED overall, because a different atomic claim about the wall's width was only partly supported. That nuance is the point, a single true/false stamp would have hidden it.">
+  <div class="pos eyebrow" style="left:110px;top:92px">05 / A real passport</div>
+  <h2 class="pos" style="left:104px;top:170px;width:760px;font-size:68px">Claim by claim, source by source.</h2>
+  <p class="pos lede" style="left:110px;top:440px;width:700px">We ran the classic myth: “The Great Wall is the only man-made structure visible from space with the naked eye.”</p>
+  <div class="pos" style="left:110px;top:690px;width:700px;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;gap:18px;align-items:center"><span class="tag" style="color:var(--red);border-color:#5a2f27;background:#2a1511">Contradicted</span><span style="font:400 26px Inter;color:var(--soft)">Claim score 0 / 100</span></div>
+    <div style="font:400 26px/1.4 Inter;color:var(--muted)">4 opposing sources, each with relevance and quality scores. The overall passport stays <span style="color:var(--yellow)">Unverified (65)</span> because other atomic claims were only partly supported.</div>
+  </div>
+  <div class="shot" style="left:900px;top:90px;width:920px;height:668px"><img src="../assets/shot-claim-evidence.png" alt="Claim and evidence panel"></div>
+  <div class="cap" style="left:900px;top:786px">Real output · claim, reasoning and evidence</div>
+  <div class="foot"><span>Mesh / Incubation</span><span>06 / 14</span></div>
+</section>
+
+<!-- 7 DISAGREEMENT -->
+<section class="slide" data-notes="Disagreement is information, so Mesh keeps it. Here two independent investigators scored the same evidence 66 and 73, one said Unverified, the other Supported, and Mesh records a 20-point gap on a specific claim instead of averaging it away. Evidence is only labelled supporting or opposing when both investigators agree. Then an adversarial reviewer attacks the leading answer; here it flagged an ambiguity about what counts as 'space', and the resolution is shown openly.">
+  <div class="pos eyebrow" style="left:110px;top:92px">06 / Disagreement is a feature</div>
+  <h2 class="pos" style="left:104px;top:170px;width:800px">Mesh shows where the answers split.</h2>
+  <p class="pos lede" style="left:110px;top:480px;width:700px">Two investigators read the same evidence independently. When they differ, the passport says so, and a third pass argues against the leading answer.</p>
+  <div class="pos" style="left:110px;top:780px;width:700px;font:600 24px/1.45 Inter;color:var(--lime)">Evidence is marked supporting or opposing only when both investigators agree.</div>
+  <div class="pos card" style="left:940px;top:100px;width:880px;padding:36px 40px">
+    <div class="eyebrow" style="font-size:16px;color:var(--muted)">Independent assessments · same claim</div>
+    <div style="margin-top:28px;display:grid;grid-template-columns:230px 1fr 150px;align-items:center;row-gap:30px">
+      <div style="font:600 24px Inter">Investigator 1</div><div class="pill-bar"><i style="width:66%;background:var(--yellow)"></i></div><div style="text-align:right"><b style="font:700 40px 'Space Grotesk';color:var(--yellow)">66</b><span class="mono" style="font-size:15px;color:var(--muted)"> UNVERIFIED</span></div>
+      <div style="font:600 24px Inter">Investigator 2</div><div class="pill-bar"><i style="width:73%;background:var(--green)"></i></div><div style="text-align:right"><b style="font:700 40px 'Space Grotesk';color:var(--green)">73</b><span class="mono" style="font-size:15px;color:var(--muted)"> SUPPORTED</span></div>
+    </div>
+  </div>
+  <div class="shot" style="left:940px;top:420px;width:880px;height:125px"><img src="../assets/shot-disagree.png" alt="Recorded disagreement" style="object-fit:fill"></div>
+  <div class="shot" style="left:940px;top:580px;width:880px;height:244px"><img src="../assets/shot-challenge.png" alt="Adversarial challenge"></div>
+  <div class="cap" style="left:940px;top:852px">Real output · recorded disagreement and adversarial challenge</div>
+  <div class="foot"><span>Mesh / Incubation</span><span>07 / 14</span></div>
+</section>
+
+<!-- 8 SCORE -->
+<section class="slide light" data-notes="This is why the number is trustworthy: it's computed by fixed, published application code. Per claim: sixty percent evidence balance, forty percent mean model probability, minus a capped penalty for unresolved adversarial challenges. Evidence is weighted by source quality times relevance and by how many distinct domains back it. Confidence blends model confidence, agreement, domain coverage and source quality. The final narrative model can write the explanation but is not allowed to change the result. Bands map to four verdicts.">
+  <div class="pos eyebrow" style="left:110px;top:92px">07 / The Truth Score</div>
+  <h2 class="pos" style="left:104px;top:170px;width:1500px">A formula you can audit.</h2>
+  <div class="pos card" style="left:110px;top:400px;width:1000px;height:520px;padding:44px 50px">
+    <div class="eyebrow" style="font-size:16px">Per-claim score</div>
+    <div style="font:600 40px/1.35 'Space Grotesk';margin-top:22px;color:var(--ink)">0.60 × evidence &nbsp;+&nbsp; 0.40 × model mean<br>− adversarial penalty <span style="font:400 24px Inter;color:var(--gray)">(capped at 20)</span></div>
+    <div class="rule" style="left:50px;right:50px;top:230px"></div>
+    <div style="margin-top:56px;font:400 25px/1.55 Inter;color:var(--gray)">
+      <b style="color:var(--ink)">Evidence</b> is weighted by source quality × relevance, and pulled toward 50 until three or more distinct domains agree.<br>
+      <b style="color:var(--ink)">Confidence</b> = model confidence 35% · agreement 25% · domain coverage 25% · source quality 15%.
+    </div>
+  </div>
+  <div class="pos" style="left:1180px;top:400px;width:640px;display:flex;flex-direction:column;gap:14px">
+    <div class="band" style="border-left-color:#1aa26f"><b>70–100</b><span>Supported</span></div>
+    <div class="band" style="border-left-color:#d9a526"><b>50–69</b><span>Unverified</span></div>
+    <div class="band" style="border-left-color:#e07a2f"><b>25–49</b><span>Misleading</span></div>
+    <div class="band" style="border-left-color:#d0513a"><b>0–24</b><span>Contradicted</span></div>
+    <div style="font:700 26px/1.35 'Space Grotesk';margin-top:18px;color:var(--ink)">Models don't pick the number, and the final narrative can't change it.</div>
+  </div>
+  <style>.band{background:#fff;border:1px solid var(--soft);border-left:10px solid;border-radius:14px;padding:22px 28px;display:flex;justify-content:space-between;align-items:center}.band b{font:700 34px "Space Grotesk"}.band span{font:600 24px Inter;color:var(--gray)}</style>
+  <div class="foot"><span>Mesh / Incubation</span><span>08 / 14</span></div>
+</section>
+
+<!-- 9 CHAIN -->
+<section class="slide" data-notes="Integrity, not truth. Mesh hashes the input, claims, evidence, model outputs and Gonka request IDs into Merkle roots and a passport hash, then writes only those compact values to a registry contract on Ethereum Sepolia. No content, URLs, evidence or images go on-chain. Anyone can recompute the hashes and compare them to the receipt. The receipt on the right is real: transaction confirmed in block 11,891,382. Be clear in the room: a chain receipt proves the passport hasn't changed, it doesn't prove the claim is true.">
+  <div class="pos eyebrow" style="left:110px;top:92px">08 / Tamper-evident</div>
+  <h2 class="pos" style="left:104px;top:170px;width:880px">A receipt anyone can recheck.</h2>
+  <div class="pos" style="left:110px;top:440px;width:350px"><div class="eyebrow" style="font-size:16px;margin-bottom:22px">On-chain</div>
+    <ul class="tick" style="font-size:24px"><li style="font-size:24px">Passport hash &amp; roots</li><li style="font-size:24px">Model-output hashes</li><li style="font-size:24px">Score &amp; version</li><li style="font-size:24px">Timestamp, attestor</li></ul></div>
+  <div class="pos" style="left:500px;top:440px;width:380px"><div class="eyebrow" style="font-size:16px;margin-bottom:22px;color:var(--red)">Never on-chain</div>
+    <ul class="tick cross"><li style="font-size:24px">The input text</li><li style="font-size:24px">URLs or evidence</li><li style="font-size:24px">Model reasoning</li><li style="font-size:24px">Images</li></ul></div>
+  <div class="pos mono" style="left:110px;top:800px;width:800px;font-size:18px;line-height:1.7;color:var(--muted)">MeshAttestationRegistry · Solidity 0.8.24<br><span style="color:var(--lime)">0x93a41c639aB78f5aA00345da1AF9E3eacdf5bb6C</span></div>
+  <div class="pos" style="left:110px;top:900px;font:700 26px 'Space Grotesk'">Integrity <span style="font-family:Inter;font-weight:500">≠</span> truth. The chain proves it hasn't changed.</div>
+  <div class="shot" style="left:1060px;top:110px;width:760px;height:730px"><img src="../assets/shot-attestation.png" alt="Sepolia attestation panel" style="object-fit:fill"></div>
+  <div class="cap" style="left:1060px;top:868px">Real receipt · confirmed in Sepolia block 11,891,382</div>
+  <div class="foot"><span>Mesh / Incubation</span><span>09 / 14</span></div>
+</section>
+
+<!-- 10 SURFACES -->
+<section class="slide" data-notes="One backend, several ways in. The web app and public passport pages; a Telegram bot, because that's where forwarded claims actually live; a documented REST API with Swagger so developers and agents can fetch a passport instead of redoing the investigation; and an embeddable badge. Same pipeline behind all of them, so a passport created in Telegram opens on the web with the same receipt.">
+  <div class="pos eyebrow" style="left:110px;top:92px">09 / Where it lives</div>
+  <h2 class="pos" style="left:104px;top:170px;width:1500px">One pipeline. Every way in.</h2>
+  <div class="pos big" style="left:96px;top:380px;width:1728px;display:grid;grid-template-columns:repeat(4,1fr);gap:24px">
+    <div class="card" style="height:400px"><div class="num">WEB</div><h3 style="margin-top:20px">Web app</h3><p>Verify, explore the public registry, share a passport link or JSON.</p></div>
+    <div class="card" style="height:400px"><div class="num">TELEGRAM</div><h3 style="margin-top:20px">@mesh_passport_bot</h3><p>Send text, a link or a photo where claims are actually forwarded.</p></div>
+    <div class="card" style="height:400px"><div class="num">API</div><h3 style="margin-top:20px">REST + Swagger</h3><p>Developers and AI agents reuse a passport instead of repeating the work.</p></div>
+    <div class="card" style="height:400px"><div class="num">BADGE</div><h3 style="margin-top:20px">Embeddable badge</h3><p>An iframe-safe verdict that links back to the full passport.</p></div>
+  </div>
+  <div class="pos" style="left:110px;top:870px;width:1700px;font:400 27px/1.5 Inter;color:var(--soft)">For <b style="color:#fff">everyday users</b> · <b style="color:#fff">journalists &amp; researchers</b> · <b style="color:#fff">developers &amp; AI agents</b> · <b style="color:#fff">auditors</b></div>
+  <div class="foot"><span>Mesh / Incubation</span><span>10 / 14</span></div>
+</section>
+
+<!-- 11 TRUST -->
+<section class="slide" data-notes="Why you can build on this. Every inference call goes through Gonka Router, so no single provider defines the answer and models can be swapped, in fact one of our two model slots was retired on the Gonka network this week and we handled it with a configured fallback. Evidence is live, not remembered. Guardrails are shipped: URL safety checks, upload limits, schema validation with a repair pass, rate limits, server-only secrets. And we're upfront about limits, prompt injection from retrieved pages isn't fully defended yet, OCR is English-only, and a score is an assessment, not an oracle.">
+  <div class="pos eyebrow" style="left:110px;top:92px">10 / Built to be trusted</div>
+  <h2 class="pos" style="left:104px;top:170px;width:1500px">Decentralized inference. Honest limits.</h2>
+  <div class="pos big" style="left:96px;top:380px;width:1728px;display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+    <div class="card" style="height:380px"><h3 class="g">Decentralized AI</h3><p>Every inference call runs through Gonka Router. No single provider defines the answer, and models are swappable, with fallback when one is retired.</p></div>
+    <div class="card" style="height:380px"><h3 class="g">Live evidence</h3><p>Tavily retrieves current sources for each claim, with titles, dates, excerpts and quality, and a query built to find contradictions.</p></div>
+    <div class="card" style="height:380px"><h3 class="g">Guardrails shipped</h3><p>SSRF and DNS checks, MIME and 5 MB limits, schema validation, rate limits, server-only secrets, hashes-only on-chain.</p></div>
+  </div>
+  <div class="pos" style="left:96px;top:810px;width:1728px;border:1px solid #5a4a22;background:#1a1609;border-radius:22px;padding:30px 40px;display:flex;gap:40px;align-items:center">
+    <span class="tag warn" style="flex:none">Honest limits</span>
+    <span style="font:400 24px/1.5 Inter;color:#e8d9b0">AI can be wrong · prompt-injection defenses are basic · OCR is English-only · a score is an assessment, not an oracle.</span>
+  </div>
+  <div class="foot"><span>Mesh / Incubation</span><span>11 / 14</span></div>
+</section>
+
+<!-- 12 VISION -->
+<section class="slide black" data-notes="This is where it goes, and I want to be clear it's proposed, not built. Today Mesh answers 'is this true right now?'. The next step is making a verification living: remember claims across posts and languages, version passports and alert people when evidence moves, put context where claims appear, give agents typed tools with policy gates, attest the method not just the artifact, and measure quality publicly. Further out are gated pilots, cases, market dossiers, bounties, private-source proofs, only once the foundations are measurable. The rule we keep repeating: assessment is not integrity is not truth.">
+  <div class="pos eyebrow" style="left:110px;top:92px">11 / Where it goes</div>
+  <div class="pos" style="right:96px;top:84px"><span class="tag">Proposed roadmap</span></div>
+  <h2 class="pos" style="left:104px;top:160px;width:1500px">From a one-time check to living evidence.</h2>
+  <div class="pos" style="left:96px;top:330px;width:1728px;display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+    <div class="card" style="height:215px;padding:30px"><h3>Mesh Memory</h3><p style="font-size:21px">One claim graph across posts, screenshots and translations.</p></div>
+    <div class="card" style="height:215px;padding:30px"><h3>Living Passports + Watch</h3><p style="font-size:21px">Immutable versions and one alert when evidence really changes.</p></div>
+    <div class="card" style="height:215px;padding:30px"><h3>Lens + Share-to-Mesh</h3><p style="font-size:21px">Context where claims appear: browser layer, Telegram, WhatsApp pilot.</p></div>
+    <div class="card" style="height:215px;padding:30px"><h3>MCP + Trust Policy</h3><p style="font-size:21px">Typed tools for agents; high-risk actions escalate when evidence is stale.</p></div>
+    <div class="card" style="height:215px;padding:30px"><h3>MethodHash</h3><p style="font-size:21px">Attest the method and version, not just the artifact.</p></div>
+    <div class="card" style="height:215px;padding:30px"><h3>Mesh Bench + Firewall</h3><p style="font-size:21px">Public accuracy metrics; retrieved text treated as untrusted input.</p></div>
+  </div>
+  <div class="pos" style="left:110px;top:815px;width:1700px;font:400 26px/1.5 Inter;color:var(--muted)"><b style="color:var(--lime)">Gated pilots, only after the foundations are measurable:</b> audit cases · market resolution dossiers · evidence bounties · zkTLS private-source proofs · zero-knowledge passports. A score never moves money by itself.</div>
+  <div class="pos" style="left:110px;top:925px;font:700 28px 'Space Grotesk';color:var(--green)">Evidence assessment <span style="font-family:Inter;font-weight:500">≠</span> cryptographic integrity <span style="font-family:Inter;font-weight:500">≠</span> real-world truth</div>
+  <div class="foot"><span>Mesh / Incubation</span><span>12 / 14</span></div>
+</section>
+
+<!-- 13 INCUBATION -->
+<section class="slide light" data-notes="What we'd use the programme for. Quality first: a frozen benchmark, citation exactness, appropriate abstention and a real prompt-injection defense, because trust is the product. Then distribution: WhatsApp pilot, browser extension, SDK and MCP server, where the claims already are. Then partners: newsrooms, fact-checkers and communities to pilot with, so passports get reused rather than recreated. EDIT THIS SLIDE to match the exact ask you want to make.">
+  <div class="pos eyebrow" style="left:110px;top:92px">12 / With SIMAN LABS</div>
+  <h2 class="pos" style="left:104px;top:170px;width:1500px">Where incubation helps most.</h2>
+  <div class="pos big" style="left:96px;top:380px;width:1728px;display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+    <div class="card" style="height:440px"><div class="num" style="color:#0b8a5e">01</div><h3 style="margin-top:18px">Prove the quality</h3><p>A frozen benchmark, citation exactness, honest abstention, and a real defense against prompt injection from retrieved pages.</p></div>
+    <div class="card" style="height:440px"><div class="num" style="color:#0b8a5e">02</div><h3 style="margin-top:18px">Go where claims live</h3><p>WhatsApp pilot, browser extension, TypeScript SDK and MCP server, so a passport appears at the moment of sharing.</p></div>
+    <div class="card" style="height:440px"><div class="num" style="color:#0b8a5e">03</div><h3 style="margin-top:18px">Find launch partners</h3><p>Newsrooms, fact-checkers and communities to pilot with, so passports are reused instead of recreated.</p></div>
+  </div>
+  <div class="pos" style="left:110px;top:890px;font:700 30px 'Space Grotesk'">Our ask: mentorship, pilot partners and distribution.</div>
+  <div class="foot"><span>Mesh / Incubation</span><span>13 / 14</span></div>
+</section>
+
+<!-- 14 CLOSE -->
+<section class="slide black" data-notes="Close on the promise and the proof: a working product with real sources, real disagreement, and a real on-chain receipt. Invite them to try a claim live or in the Telegram bot.">
+  <img src="../assets/network-sculpture.png" class="pos" style="inset:0;width:1920px;height:1080px;object-fit:cover" alt="">
+  <div class="pos" style="inset:0;background:linear-gradient(90deg,#030908 0%,#030908 40%,rgba(3,9,8,.7) 60%,rgba(3,9,8,.05) 100%)"></div>
+  <div class="pos eyebrow" style="left:110px;top:92px">Mesh &nbsp;×&nbsp; SIMAN LABS</div>
+  <h1 class="pos" style="left:104px;top:290px;font-size:128px;line-height:1">Make evidence<br>worth acting on.</h1>
+  <p class="pos lede" style="left:110px;top:660px;width:900px;color:var(--soft)">A living, inspectable, privacy-aware evidence network, built from a working product.</p>
+  <div class="pos mono" style="left:110px;top:820px;font-size:24px;line-height:1.9;color:var(--lime)">ai3-hack.oluwadunsin.dev<br>t.me/mesh_passport_bot</div>
+  <div class="foot"><span>Mesh / Incubation</span><span>14 / 14</span></div>
+</section>
+
+</div>
+<script>
+const slides=[...document.querySelectorAll('.slide')];
+let i=0;
+function fit(){const s=Math.min(innerWidth/1920,innerHeight/1080);slides.forEach(el=>el.style.transform=`scale(${s})`)}
+function show(n){i=Math.max(0,Math.min(slides.length-1,n));slides.forEach((el,k)=>el.classList.toggle('on',k===i));history.replaceState(null,'','#'+(i+1))}
+addEventListener('resize',fit);
+addEventListener('keydown',e=>{if(['ArrowRight','PageDown',' ','Enter'].includes(e.key))show(i+1);if(['ArrowLeft','PageUp','Backspace'].includes(e.key))show(i-1);if(e.key==='Home')show(0);if(e.key==='End')show(slides.length-1)});
+addEventListener('click',e=>show(e.clientX>innerWidth/2?i+1:i-1));
+fit();show((parseInt(location.hash.slice(1))||1)-1);
+</script>
+</body>
+</html>
