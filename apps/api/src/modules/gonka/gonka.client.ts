@@ -104,7 +104,7 @@ export class GonkaClient {
           fallbackModel &&
           fallbackModel !== activeModel &&
           status === 400 &&
-          /unsupported model|model not available/i.test(detail)
+          /unsupported model|model not available|has been retired/i.test(detail)
         ) {
           fallbackAttempted = true;
           activeModel = fallbackModel;
