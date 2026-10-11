@@ -62,52 +62,44 @@ F10, MCP plus trust policy engine. This is our AI Agent track fit. Typed tools r
 
 ## Slide 16
 
-F11, MethodHash plus attestations. This is where our existing Sepolia registry grows. Signed passports bind an exact assessment and method version, so third parties can verify the method, not just the artifact. A chain confirmation proves publication and integrity, never factual truth.
+F12, Mesh Bench plus the evidence firewall. Quality before scale. Frozen benchmarks expose retrieval and verdict failures. Citation exactness, appropriate abstention and calibration are first-class metrics. The evidence firewall treats pages, OCR and documents as untrusted input, which closes the prompt-injection limit we are honest about today. No benchmark numbers are shown because we have not published any yet.
 
 ## Slide 17
 
-F12, Mesh Bench plus the evidence firewall. Quality before scale. Frozen benchmarks expose retrieval and verdict failures. Citation exactness, appropriate abstention and calibration are first-class metrics. The evidence firewall treats pages, OCR and documents as untrusted input, which closes the prompt-injection limit we are honest about today. No benchmark numbers are shown because we have not published any yet.
+The next four capabilities are gated pilots. We only pursue them after the foundations are solid: evidence lineage, living versions, explicit policies, security and measurable quality. No automatic high-stakes actions, ever.
 
 ## Slide 18
 
-The next five capabilities are gated pilots. We only pursue them after the foundations are solid: evidence lineage, living versions, explicit policies, security and measurable quality. No automatic high-stakes actions, ever.
+F13, auditable cases. Grant, DAO and narrowly defined insurance cases gather structured evidence and human review. The domain owner keeps authority to approve or pay. Missing records produce NEEDS INFO and disputes stay visible. A case outcome is not an automatic payout.
 
 ## Slide 19
 
-F13, auditable cases. Grant, DAO and narrowly defined insurance cases gather structured evidence and human review. The domain owner keeps authority to approve or pay. Missing records produce NEEDS INFO and disputes stay visible. A case outcome is not an automatic payout.
+F14, an outcome dossier, not a betting oracle. Mesh assembles timestamped evidence against rules locked before a market closes. An authorized oracle or jury still resolves and settles. Ambiguous evidence escalates and indeterminate is a valid outcome. A score never moves collateral. Sandbox and advisory only.
 
 ## Slide 20
 
-F14, an outcome dossier, not a betting oracle. Mesh assembles timestamped evidence against rules locked before a market closes. An authorized oracle or jury still resolves and settles. Ambiguous evidence escalates and indeterminate is a valid outcome. A score never moves collateral. Sandbox and advisory only.
+F15, evidence bounties. Reward the missing proof, not the loudest opinion. A bounded evidence need invites verifiable submissions, reviewers apply a published rubric, and accepted evidence creates a new passport version. Pilot with off-chain funding first. Links alone earn nothing.
 
 ## Slide 21
 
-F15, evidence bounties. Reward the missing proof, not the loudest opinion. A bounded evidence need invites verifiable submissions, reviewers apply a published rubric, and accepted evidence creates a new passport version. Pilot with off-chain funding first. Links alone earn nothing.
+F16, zkTLS. For one supported portal and a narrow predicate, a vetted zkTLS provider can verify the source origin and a minimal disclosed value, so Mesh never needs the full private record. Source origin is not database truth. Unsupported sites fail clearly and credentials stay with the user. The provider trust model and field binding are explicit.
 
 ## Slide 22
 
-F16, zkTLS. For one supported portal and a narrow predicate, a vetted zkTLS provider can verify the source origin and a minimal disclosed value, so Mesh never needs the full private record. Source origin is not database truth. Unsupported sites fail clearly and credentials stay with the user. The provider trust model and field binding are explicit.
+SuperStar rewards demo-ready delivery, so here is the single end-to-end demo we commit to build. A known claim resurfaces in a misleading screenshot. Memory recognizes it. Image provenance and EvidenceProof pin down the contextual problem. Adaptive research produces an evidence-complete update, published as an immutable new passport version with an explainable delta. A Trust Tag shows the context, a watcher is alerted, and finally an autonomous agent fails a strict policy against the same passport. Optional extras are a supported private-proof demo and a sandbox outcome dossier. This is the target, not something shipped today.
 
 ## Slide 23
 
-F17, zero-knowledge passports. Selective disclosure proves included fields with a Merkle proof. A later true ZK pilot proves one bounded hidden predicate against a signed passport root and policy. These are two different cryptographic claims, and a valid proof verifies a commitment, not the source's factual honesty.
+The roadmap in relative weeks, to be adjusted to the actual SuperStar calendar. Phase zero hardens the foundation: baseline tests, schema v2, security review, a Mesh Bench baseline. Phase one is evidence intelligence, the hardest quality work. Phase two makes passports living. Phase three is distribution: Lens, Telegram and WhatsApp pilot, plus MCP and policy. Phase four is the visual differentiator. Phase five is proofs and vertical pilots, only after quality and security gates pass. The critical path starts with security and canonical schemas, then memory and research. If capacity is tight we deprioritize zkTLS, bounty escrow and market integrations before compromising evidence quality.
 
 ## Slide 24
 
-SuperStar rewards demo-ready delivery, so here is the single end-to-end demo we commit to build. A known claim resurfaces in a misleading screenshot. Memory recognizes it. Image provenance and EvidenceProof pin down the contextual problem. Adaptive research produces an evidence-complete update, published as an immutable new passport version with an explainable delta. A Trust Tag shows the context, a watcher is alerted, and finally an autonomous agent fails a strict policy against the same passport. Optional extras are a supported private-proof demo and a sandbox outcome dossier. This is the target, not something shipped today.
+How we will prove it, in the spirit of no PPT scoring. These are proposed delivery gates, not performance claims: we will not claim benchmark gains until they are measured, and we will mark unsupported capabilities as unsupported rather than fabricate evidence, receipts or verification results.
 
 ## Slide 25
 
-The roadmap in relative weeks, to be adjusted to the actual SuperStar calendar. Phase zero hardens the foundation: baseline tests, schema v2, security review, a Mesh Bench baseline. Phase one is evidence intelligence, the hardest quality work. Phase two makes passports living. Phase three is distribution: Lens, Telegram and WhatsApp pilot, plus MCP and policy. Phase four is the visual differentiator. Phase five is proofs and vertical pilots, only after quality and security gates pass. The critical path starts with security and canonical schemas, then memory and research. If capacity is tight we deprioritize full ZK, bounty escrow and market integrations before compromising evidence quality.
-
-## Slide 26
-
-How we will prove it, in the spirit of no PPT scoring. These are proposed delivery gates, not performance claims: we will not claim benchmark gains until they are measured, and we will mark unsupported capabilities as unsupported rather than fabricate evidence, receipts or verification results.
-
-## Slide 27
-
 Where this can become a business. These are hypotheses, not verified demand: a free consumer tier, premium watch and private vault, developer and API usage pricing, organization workspaces, specialized case work, and an open core protocol where Mesh monetizes the managed service rather than a token. A transferable token is not required. The validation plan is to interview journalists, fact-checkers, Web3 agent developers and a grant or DAO operator, and to recruit pilot users, reporting documented partnerships only once they are real.
 
-## Slide 28
+## Slide 26
 
 Close on the promise and the proof: a working product with real sources, real disagreement and a real on-chain receipt, plus a roadmap built on it and gates we can be held to. The ask: an incubation grant tier, BD and distribution introductions, and pilot partners. Invite them to try a claim live or in the Telegram bot.

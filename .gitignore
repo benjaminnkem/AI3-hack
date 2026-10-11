@@ -9,6 +9,4 @@ typechain-types
 *.log
 config.bat
 apps/**/.env
-.env
-.env.*
 !.env.example

@@ -2,11 +2,11 @@
   "name": "mesh",
   "version": "1.0.0",
   "private": true,
-  "description": "Mesh — Every digital claim deserves a verifiable Evidence Passport.",
+  "description": "Mesh \u2014 Every digital claim deserves a verifiable Evidence Passport.",
   "packageManager": "pnpm@9.1.0",
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
+    "dev": "node api.js && turbo run dev",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
