@@ -23,7 +23,7 @@ export class HealthController {
       status: database ? 'ok' : 'degraded',
       api: true,
       database,
-      gonkaConfigured: !!this.config.get('GONKA_API_KEY'),
+      otariConfigured: !!this.config.get('OTARI_API_KEY'),
       tavilyConfigured: !!this.config.get('TAVILY_API_KEY'),
       storageDriver: this.config.get('STORAGE_DRIVER'),
       attestationEnabled: this.blockchain.enabled,

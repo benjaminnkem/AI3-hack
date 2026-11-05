@@ -123,8 +123,8 @@ function mapModelResponses(data: any, consensus: any): PassportModelResponse[] {
 
   if (consensus.kimi) {
     modelResponses.push({
-      model: consensus.kimi.modelId || 'moonshotai/Kimi-K2.6',
-      modelId: consensus.kimi.modelId || 'moonshotai/Kimi-K2.6',
+      model: consensus.kimi.modelId || 'moonshotai/kimi-k2.6',
+      modelId: consensus.kimi.modelId || 'moonshotai/kimi-k2.6',
       score: consensus.kimi.score ?? 0,
       confidence: consensus.kimi.confidence ?? 0,
       verdict: asVerdict(consensus.kimi.verdict),
@@ -135,8 +135,8 @@ function mapModelResponses(data: any, consensus: any): PassportModelResponse[] {
 
   if (consensus.minimax) {
     modelResponses.push({
-      model: consensus.minimax.modelId || 'MiniMaxAI/MiniMax-M2.7',
-      modelId: consensus.minimax.modelId || 'MiniMaxAI/MiniMax-M2.7',
+      model: consensus.minimax.modelId || 'minimax/MiniMax-M2.7',
+      modelId: consensus.minimax.modelId || 'minimax/MiniMax-M2.7',
       score: consensus.minimax.score ?? 0,
       confidence: consensus.minimax.confidence ?? 0,
       verdict: asVerdict(consensus.minimax.verdict),

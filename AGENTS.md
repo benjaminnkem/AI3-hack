@@ -6,8 +6,8 @@ Non-negotiable rules:
 
 - Preserve the existing Turborepo, package manager, app boundaries, and working conventions.
 - Focus only on the app(s) named in the current task.
-- Route every LLM inference through Gonka Router.
-- Use exact live Gonka model IDs and API behavior from official Gonka documentation; never invent provider fields.
+- Route every LLM inference through Otari.
+- Use exact Otari catalog model IDs and API behavior from official Otari documentation; never invent provider fields.
 - Use Tavily only for web search and URL extraction, not as an LLM provider.
 - Use Ethereum Sepolia, chain ID 11155111, for the attestation registry.
 - Keep all secrets server-side and never commit `.env` files or real keys.

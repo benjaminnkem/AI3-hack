@@ -524,7 +524,7 @@ export class VerificationService {
       kimi: {
         // Keep the logical investigator slot stable for consumers. The audit
         // still records the actual transport model used after any fallback.
-        modelId: this.config.get('GONKA_KIMI_MODEL', 'moonshotai/Kimi-K2.6'),
+        modelId: this.config.get('GONKA_KIMI_MODEL', 'moonshotai/kimi-k2.6'),
         score: Math.round(k),
         confidence: kimi.claims.length
           ? Math.round(kimi.claims.reduce((s, c) => s + c.confidence, 0) / kimi.claims.length)
@@ -535,7 +535,7 @@ export class VerificationService {
       },
       minimax: {
         modelId:
-          minimaxAudit?.modelId ?? this.config.get('GONKA_MINIMAX_MODEL', 'MiniMaxAI/MiniMax-M2.7'),
+          minimaxAudit?.modelId ?? this.config.get('GONKA_MINIMAX_MODEL', 'minimax/MiniMax-M2.7'),
         score: Math.round(m),
         confidence: minimax.claims.length
           ? Math.round(minimax.claims.reduce((s, c) => s + c.confidence, 0) / minimax.claims.length)

@@ -6,8 +6,8 @@ The product source of truth is `docs/MESH_PRD.md`. Read it before implementation
 
 - Preserve the current Turborepo and package manager.
 - Implement the task completely; do not stop at planning or scaffolding.
-- All AI inference must go through Gonka Router.
-- Confirm Gonka endpoint, model IDs, and request/response behavior from `https://gonkarouter.io/docs` and `https://gonkarouter.io/models`.
+- All AI inference must go through Otari (https://api.otari.ai/api).
+- Confirm Otari endpoint, model IDs, and request/response behavior from `https://docs.otari.ai` and the otari.ai model catalog.
 - Tavily is the live evidence retrieval layer only.
 - Ethereum Sepolia chain ID 11155111 is the attestation network.
 - No secrets in source control or browser-exposed environment variables.

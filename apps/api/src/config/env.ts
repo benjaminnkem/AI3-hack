@@ -8,13 +8,11 @@ export const envSchema = z
     API_PREFIX: z.string().default('api/v1'),
     WEB_ORIGINS: z.string().default('http://localhost:3000'),
     DATABASE_URL: z.string().min(1),
-    GONKA_BASE_URL: z.string().url().default('https://api.gonkarouter.io'),
-    GONKA_API_KEY: z.string().optional(),
-    GONKA_KIMI_MODEL: z.literal('moonshotai/Kimi-K2.6').default('moonshotai/Kimi-K2.6'),
-    GONKA_KIMI_FALLBACK_MODEL: z
-      .literal('MiniMaxAI/MiniMax-M2.7')
-      .default('MiniMaxAI/MiniMax-M2.7'),
-    GONKA_MINIMAX_MODEL: z.literal('MiniMaxAI/MiniMax-M2.7').default('MiniMaxAI/MiniMax-M2.7'),
+    OTARI_BASE_URL: z.string().url().default('https://api.otari.ai/api'),
+    OTARI_API_KEY: z.string().optional(),
+    GONKA_KIMI_MODEL: z.string().min(1).default('moonshotai/kimi-k2.6'),
+    GONKA_KIMI_FALLBACK_MODEL: z.string().min(1).default('minimax/MiniMax-M2.7'),
+    GONKA_MINIMAX_MODEL: z.string().min(1).default('minimax/MiniMax-M2.7'),
     GONKA_MAX_TOKENS: z.coerce.number().int().min(1024).default(4096),
     GONKA_VISUAL_MAX_TOKENS: z.coerce.number().int().min(1024).default(1536),
     GONKA_CLAIM_MAX_TOKENS: z.coerce.number().int().min(1024).default(1536),
@@ -54,10 +52,10 @@ export const envSchema = z
     SWAGGER_ENABLED: bool.default('true'),
   })
   .superRefine((env, ctx) => {
-    if (env.NODE_ENV !== 'test' && !env.GONKA_API_KEY)
+    if (env.NODE_ENV !== 'test' && !env.OTARI_API_KEY)
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ['GONKA_API_KEY'],
+        path: ['OTARI_API_KEY'],
         message: 'required outside tests',
       });
     if (env.NODE_ENV !== 'test' && !env.TAVILY_API_KEY)

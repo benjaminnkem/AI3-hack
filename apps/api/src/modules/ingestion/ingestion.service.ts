@@ -75,7 +75,7 @@ export class IngestionService {
 
     const result = await this.gonka.structured(
       {
-        model: this.config.get('GONKA_KIMI_MODEL', 'moonshotai/Kimi-K2.6'),
+        model: this.config.get('GONKA_KIMI_MODEL', 'moonshotai/kimi-k2.6'),
         maxTokens: this.config.get('GONKA_VISUAL_MAX_TOKENS', 1536),
         system: prompts.visual,
         content: [

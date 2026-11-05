@@ -31,19 +31,19 @@ export class GonkaClient {
     private readonly config: ConfigService,
     @Optional() @Inject(GONKA_TRANSPORT) injected?: GonkaTransport,
   ) {
-    const key = config.get<string>('GONKA_API_KEY');
+    const key = config.get<string>('OTARI_API_KEY');
     this.transport =
       injected ??
       new AnthropicTransport(
         new Anthropic({
           apiKey: key ?? 'missing',
-          baseURL: config.get<string>('GONKA_BASE_URL', 'https://api.gonkarouter.io'),
+          baseURL: config.get<string>('OTARI_BASE_URL', 'https://api.otari.ai/api'),
         }),
       );
   }
   async complete(request: GonkaRequest): Promise<GonkaResult> {
-    if (!this.config.get<string>('GONKA_API_KEY') && !this.isInjectedForTests())
-      throw new HttpException('Gonka is not configured', HttpStatus.SERVICE_UNAVAILABLE);
+    if (!this.config.get<string>('OTARI_API_KEY') && !this.isInjectedForTests())
+      throw new HttpException('Otari is not configured', HttpStatus.SERVICE_UNAVAILABLE);
     const maxTokens = request.maxTokens ?? this.config.get<number>('GONKA_MAX_TOKENS', 4096);
     if (maxTokens < 1024) throw new Error('Gonka max_tokens cannot be below 1024');
     const maxRetries = this.config.get<number>('GONKA_MAX_RETRIES', 2);
@@ -96,11 +96,11 @@ export class GonkaClient {
         );
         const fallbackModel = this.config.get<string>(
           'GONKA_KIMI_FALLBACK_MODEL',
-          'MiniMaxAI/MiniMax-M2.7',
+          'minimax/MiniMax-M2.7',
         );
         if (
           !fallbackAttempted &&
-          activeModel === this.config.get('GONKA_KIMI_MODEL', 'moonshotai/Kimi-K2.6') &&
+          activeModel === this.config.get('GONKA_KIMI_MODEL', 'moonshotai/kimi-k2.6') &&
           fallbackModel &&
           fallbackModel !== activeModel &&
           status === 400 &&
@@ -123,7 +123,7 @@ export class GonkaClient {
           continue;
         }
         if (status === 401 || status === 403)
-          throw new HttpException('Gonka authentication failed', HttpStatus.BAD_GATEWAY);
+          throw new HttpException('Otari authentication failed', HttpStatus.BAD_GATEWAY);
         if (status === 400 || status === 404)
           throw new HttpException(
             `Gonka rejected model or request (${activeModel})${detail ? `: ${detail}` : ''}`,
