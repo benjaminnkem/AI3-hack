@@ -13,7 +13,7 @@ export class ClaimExtractionService {
   async extract(content: string): Promise<{ output: ExtractedClaims; audit: GonkaResult }> {
     const result = await this.gonka.structured(
       {
-        model: this.config.get('GONKA_MINIMAX_MODEL', 'minimax/MiniMax-M2.7'),
+        model: this.config.get('GONKA_MINIMAX_MODEL', 'minimax/minimax-m2.5'),
         maxTokens: this.config.get('GONKA_CLAIM_MAX_TOKENS', 1536),
         system: prompts.claims,
         content: [{ type: 'text', text: content.slice(0, 12000) }],

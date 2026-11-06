@@ -135,8 +135,8 @@ function mapModelResponses(data: any, consensus: any): PassportModelResponse[] {
 
   if (consensus.minimax) {
     modelResponses.push({
-      model: consensus.minimax.modelId || 'minimax/MiniMax-M2.7',
-      modelId: consensus.minimax.modelId || 'minimax/MiniMax-M2.7',
+      model: consensus.minimax.modelId || 'minimax/minimax-m2.5',
+      modelId: consensus.minimax.modelId || 'minimax/minimax-m2.5',
       score: consensus.minimax.score ?? 0,
       confidence: consensus.minimax.confidence ?? 0,
       verdict: asVerdict(consensus.minimax.verdict),

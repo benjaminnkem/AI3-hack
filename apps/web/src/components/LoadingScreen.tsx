@@ -29,7 +29,7 @@ const STEPS = [
   {
     stages: ['INVESTIGATION'],
     label: 'Dual-model investigation',
-    detail: 'Running Kimi-K2.6 and MiniMax-M2.7 concurrently through Otari',
+    detail: 'Running Kimi-K2.6 and MiniMax-M2.5 concurrently through Otari',
     icon: Sparkles,
   },
   {

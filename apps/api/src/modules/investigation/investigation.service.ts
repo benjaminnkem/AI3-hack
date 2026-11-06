@@ -63,7 +63,7 @@ export class InvestigationService {
       ),
       this.gonka.structured(
         {
-          model: this.config.get('GONKA_MINIMAX_MODEL', 'minimax/MiniMax-M2.7'),
+          model: this.config.get('GONKA_MINIMAX_MODEL', 'minimax/minimax-m2.5'),
           maxTokens: this.config.get('GONKA_INVESTIGATOR_MAX_TOKENS', 3072),
           system: prompts.investigator,
           content: contentBlocks,
@@ -126,7 +126,7 @@ export class InvestigationService {
   }): Promise<{ output: NarrativeOutput; audit: GonkaResult }> {
     const result = await this.gonka.structured(
       {
-        model: this.config.get('GONKA_MINIMAX_MODEL', 'minimax/MiniMax-M2.7'),
+        model: this.config.get('GONKA_MINIMAX_MODEL', 'minimax/minimax-m2.5'),
         maxTokens: this.config.get('GONKA_NARRATIVE_MAX_TOKENS', 1536),
         system: prompts.narrative,
         content: [{ type: 'text', text: JSON.stringify(payload) }],

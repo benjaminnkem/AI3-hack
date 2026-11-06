@@ -69,7 +69,7 @@ export function PassportPreview() {
           <div className="grid grid-cols-2 gap-3">
             {[
               { label: 'Kimi-K2.6', score: 87, color: '#22e59a' },
-              { label: 'MiniMax-M2.7', score: 81, color: '#5eead4' },
+              { label: 'MiniMax-M2.5', score: 81, color: '#5eead4' },
             ].map((model, i) => (
               <div
                 key={model.label}

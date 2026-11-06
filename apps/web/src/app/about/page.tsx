@@ -38,7 +38,7 @@ const STEPS = [
   {
     icon: Network,
     title: 'Multi-model panel',
-    body: 'Kimi-K2.6 and MiniMax-M2.7 score the same claim set independently through Otari. Neither sees the other first.',
+    body: 'Kimi-K2.6 and MiniMax-M2.5 score the same claim set independently through Otari. Neither sees the other first.',
   },
   {
     icon: Scale,

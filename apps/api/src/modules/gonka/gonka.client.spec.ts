@@ -41,7 +41,7 @@ describe('GonkaClient', () => {
   it('falls back once when Gonka temporarily exposes only MiniMax', async () => {
     const unsupported = Object.assign(
       new Error(
-        'upstream error: {"error":{"message":"unsupported model moonshotai/kimi-k2.6; supported models: minimax/MiniMax-M2.7"}}',
+        'upstream error: {"error":{"message":"unsupported model moonshotai/kimi-k2.6; supported models: minimax/minimax-m2.5"}}',
       ),
       { status: 400 },
     );
@@ -54,7 +54,7 @@ describe('GonkaClient', () => {
         NODE_ENV: 'test',
         OTARI_API_KEY: 'test',
         GONKA_KIMI_MODEL: 'moonshotai/kimi-k2.6',
-        GONKA_KIMI_FALLBACK_MODEL: 'minimax/MiniMax-M2.7',
+        GONKA_KIMI_FALLBACK_MODEL: 'minimax/minimax-m2.5',
         GONKA_MAX_RETRIES: 0,
       }),
       { create } as GonkaTransport,
@@ -64,10 +64,10 @@ describe('GonkaClient', () => {
       system: 's',
       content: [{ type: 'text', text: 'x' }],
     });
-    expect(result.modelId).toBe('minimax/MiniMax-M2.7');
+    expect(result.modelId).toBe('minimax/minimax-m2.5');
     expect(create.mock.calls.map(([params]) => params.model)).toEqual([
       'moonshotai/kimi-k2.6',
-      'minimax/MiniMax-M2.7',
+      'minimax/minimax-m2.5',
     ]);
   });
 });

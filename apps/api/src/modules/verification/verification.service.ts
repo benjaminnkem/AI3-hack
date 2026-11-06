@@ -535,7 +535,7 @@ export class VerificationService {
       },
       minimax: {
         modelId:
-          minimaxAudit?.modelId ?? this.config.get('GONKA_MINIMAX_MODEL', 'minimax/MiniMax-M2.7'),
+          minimaxAudit?.modelId ?? this.config.get('GONKA_MINIMAX_MODEL', 'minimax/minimax-m2.5'),
         score: Math.round(m),
         confidence: minimax.claims.length
           ? Math.round(minimax.claims.reduce((s, c) => s + c.confidence, 0) / minimax.claims.length)

@@ -96,7 +96,7 @@ export class GonkaClient {
         );
         const fallbackModel = this.config.get<string>(
           'GONKA_KIMI_FALLBACK_MODEL',
-          'minimax/MiniMax-M2.7',
+          'minimax/minimax-m2.5',
         );
         if (
           !fallbackAttempted &&

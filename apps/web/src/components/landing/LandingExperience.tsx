@@ -444,7 +444,7 @@ export function LandingExperience() {
                 <p className="section-label">Model panel</p>
                 {[
                   ['Kimi-K2.6', '87', 'msg_01J…7P'],
-                  ['MiniMax-M2.7', '81', 'msg_01J…CX'],
+                  ['MiniMax-M2.5', '81', 'msg_01J…CX'],
                 ].map(([model, score, id]) => (
                   <div
                     key={model}
